@@ -1,4 +1,5 @@
 <script setup>
+import SearchInput from "@/components/views/home/SearchInput.vue";
 import { ref, onMounted, onUnmounted } from "vue";
 
 const { VITE_KAKAO_JAVASCRIPT_KEY } = import.meta.env
@@ -56,5 +57,32 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="mapContainer" style="width: 100vw; height: 100vh"></div>
+  <div class="map-wrapper">
+    <div ref="mapContainer" class="map-container"></div>
+    <div class="search-overlay">
+      <SearchInput />
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.map-wrapper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+.search-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+</style>
