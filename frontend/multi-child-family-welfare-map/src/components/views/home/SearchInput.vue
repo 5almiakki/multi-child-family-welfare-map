@@ -14,13 +14,13 @@ const search = () => {
 
 <template>
   <BForm>
-    <BInputGroup>
+    <BInputGroup class="shadow-sm">
       <BFormInput
         v-model="searchText"
         placeholder="검색어를 입력하세요."
       />
       <template #append>
-        <BButton variant="primary" @click="search">검색</BButton>
+        <BButton variant="success" @click="search">검색</BButton>
       </template>
     </BInputGroup>
     <div class="d-flex flex-nowrap overflow-auto pb-2 custom-scrollbar button-group">
@@ -30,7 +30,7 @@ const search = () => {
         variant="light"
         pill
         size="sm"
-        class="m-1 shadow-sm text-nowrap border"
+        class="m-1 shadow-sm text-nowrap"
       >
         {{ item }}
       </BButton>
