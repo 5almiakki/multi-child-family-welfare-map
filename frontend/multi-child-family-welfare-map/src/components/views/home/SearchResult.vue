@@ -2,8 +2,7 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  modelValue: Boolean,
-  searchData: Array
+  modelValue: Boolean
 });
 
 const emit = defineEmits(['update:modelValue']);
