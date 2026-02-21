@@ -14,9 +14,6 @@ const selectedCategories = ref([]);
 
 const emitSearch = () => {
   let k = keyword.value.trim();
-  if (!k) {
-    return;
-  }
   emit("on-search");
 };
 </script>
