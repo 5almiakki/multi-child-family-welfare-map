@@ -3,7 +3,7 @@ import SearchInput from "@/components/views/home/SearchInput.vue";
 import SearchResult from "@/components/views/home/SearchResult.vue";
 import { ref, onMounted, onUnmounted } from "vue";
 
-const { VITE_KAKAO_JAVASCRIPT_KEY } = import.meta.env
+const { VITE_KAKAO_JAVASCRIPT_KEY } = import.meta.env;
 const mapContainer = ref(null);
 let mapInstance = null;
 let scriptLoaded = false;
