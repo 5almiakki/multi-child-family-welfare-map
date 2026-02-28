@@ -1,8 +1,9 @@
 <script setup>
 import SearchInput from "@/components/views/home/SearchInput.vue";
+import SearchResult from "@/components/views/home/SearchResult.vue";
 import { ref, onMounted, onUnmounted } from "vue";
 
-const { VITE_KAKAO_JAVASCRIPT_KEY } = import.meta.env
+const { VITE_KAKAO_JAVASCRIPT_KEY } = import.meta.env;
 const mapContainer = ref(null);
 let mapInstance = null;
 let scriptLoaded = false;
@@ -37,6 +38,12 @@ const createMap = () => {
   mapInstance = new window.kakao.maps.Map(mapContainer.value, options);
 };
 
+const isDrawerOpen = ref(false);
+
+const handleSerach = () => {
+  isDrawerOpen.value = true;
+};
+
 onMounted(() => {
   loadKakaoMapScript()
     .then(() => {
@@ -59,9 +66,8 @@ onUnmounted(() => {
 <template>
   <div class="map-wrapper">
     <div ref="mapContainer" class="map-container"></div>
-    <div class="search-overlay">
-      <SearchInput />
-    </div>
+    <SearchInput @on-search="handleSerach" />
+    <SearchResult v-model="isDrawerOpen" />
   </div>
 </template>
 
@@ -76,13 +82,5 @@ onUnmounted(() => {
 .map-container {
   width: 100%;
   height: 100%;
-}
-
-.search-overlay {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  z-index: 1000;
 }
 </style>

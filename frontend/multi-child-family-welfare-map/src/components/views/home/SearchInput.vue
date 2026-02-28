@@ -1,51 +1,72 @@
 <script setup>
 import { ref } from 'vue';
 
-const searchText = ref("");
+const emit = defineEmits([
+  "on-search"
+]);
+
+const keyword = ref("");
 const categories = ref([
   "금융기관", "문화시설", "체육시설", "유치원", "어린이집", "학원", "요식업등", "병의원", "한의원",
   "이미용업", "세탁, 목욕업", "자동차", "사진관", "유통업체", "안경", "여행업", "숙박업", "기타",
 ]);
+const selectedCategories = ref([]);
 
-const search = () => {
-
+const emitSearch = () => {
+  let k = keyword.value.trim();
+  emit("on-search");
 };
 </script>
 
 <template>
-  <BForm>
-    <BInputGroup class="shadow-sm">
-      <BFormInput
-        v-model="searchText"
-        placeholder="검색어를 입력하세요."
-      />
-      <template #append>
-        <BButton variant="success" @click="search">검색</BButton>
-      </template>
-    </BInputGroup>
-    <div class="d-flex flex-nowrap overflow-auto pb-2 custom-scrollbar button-group">
-      <BButton
-        v-for="(item, index) in categories"
-        :key="index"
-        variant="light"
-        pill
-        size="sm"
-        class="m-1 shadow-sm text-nowrap"
-      >
-        {{ item }}
-      </BButton>
-    </div>
-  </BForm>
+  <div class="search-overlay">
+    <BForm @submit.prevent>
+      <BInputGroup class="shadow-sm">
+        <BFormInput
+          v-model="keyword"
+          placeholder="검색어를 입력하세요."
+          @keyup.enter="emitSearch"
+        />
+        <template #append>
+          <BButton variant="success" @click="emitSearch">검색</BButton>
+        </template>
+      </BInputGroup>
+      <div class="d-flex flex-nowrap overflow-auto pb-2 custom-scrollbar button-group">
+        <BFormCheckbox
+          v-for="(category, index) in categories"
+          :key="index"
+          v-model="selectedCategories"
+          :value="category"
+          button
+          button-variant="light"
+          size="sm"
+          class="m-1 shadow-sm text-nowrap"
+        >
+          {{ category }}
+        </BFormCheckbox>
+      </div>
+    </BForm>
+  </div>
 </template>
 
 <style scoped>
+.search-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .custom-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .button-group {
   display: flex;
   flex-wrap: wrap;
