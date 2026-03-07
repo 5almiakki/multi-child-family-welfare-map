@@ -18,7 +18,7 @@ public record KakaoLocalResponse(
 	 * @param pageableCount total_count 중 노출 가능 문서 수
 	 * @param isEnd 현재 페이지가 마지막 페이지인지 여부
 	 */
-	public record Meta(
+	public static record Meta(
 			Integer totalCount,
 			Integer pageableCount,
 			Boolean isEnd
@@ -36,7 +36,7 @@ public record KakaoLocalResponse(
 	 * @param address 지번 주소 상세 정보
 	 * @param roadAddress 도로명 주소 상세 정보
 	 */
-	public record Document(
+	public static record Document(
 			String addressName,
 			String addressType,
 			String x,
@@ -61,7 +61,7 @@ public record KakaoLocalResponse(
 		 * @param x X 좌표값, 경위도인 경우 경도(longitude)
 		 * @param y Y 좌표값, 경위도인 경우 위도(latitude)
 		 */
-		public record Address(
+		public static record Address(
 				String addressName,
 				String region1depthName,
 				String region2depthName,
@@ -92,7 +92,7 @@ public record KakaoLocalResponse(
 		 * @param x X 좌표값, 경위도인 경우 경도(longitude)
 		 * @param y Y 좌표값, 경위도인 경우 위도(latitude)
 		 */
-		public record RoadAddress(
+		public static record RoadAddress(
 				String addressName,
 				String region1depthName,
 				String region2depthName,
