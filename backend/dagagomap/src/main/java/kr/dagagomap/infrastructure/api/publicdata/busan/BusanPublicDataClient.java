@@ -29,8 +29,7 @@ public class BusanPublicDataClient {
 		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo?ServiceKey="
 				+ publicDataServicekey
 				+ "&pageNo=1&numOfRows=9999";
-		BusanPublicDataResponse response = restClient.get().uri(uri).retrieve().body(BusanPublicDataResponse.class);
-		return response;
+		return restClient.get().uri(uri).retrieve().body(BusanPublicDataResponse.class);
 	}
 
 }
