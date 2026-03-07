@@ -6,7 +6,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import kr.dagagomap.infrastructure.api.publicdata.busan.dto.BusanPublicDataResponse;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 public class BusanPublicDataClient {
 
@@ -29,7 +31,9 @@ public class BusanPublicDataClient {
 		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo?ServiceKey="
 				+ publicDataServicekey
 				+ "&pageNo=1&numOfRows=9999";
-		return restClient.get().uri(uri).retrieve().body(BusanPublicDataResponse.class);
+		var response = restClient.get().uri(uri).retrieve().body(BusanPublicDataResponse.class);
+		log.debug("Response: {}", response);
+		return response;
 	}
 
 }
