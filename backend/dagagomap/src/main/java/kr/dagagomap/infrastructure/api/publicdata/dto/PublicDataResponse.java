@@ -1,9 +1,9 @@
-package kr.dagagomap.infrastructure.api.dto;
+package kr.dagagomap.infrastructure.api.publicdata.dto;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
 
 @JsonRootName("response")
-public record ApiResponse(
+public record PublicDataResponse(
 		Header header,
 		Body body
 ) {
