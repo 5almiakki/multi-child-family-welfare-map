@@ -1,19 +1,19 @@
-package kr.dagagomap.infrastructure.api.publicdata;
+package kr.dagagomap.infrastructure.api.publicdata.busan;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import kr.dagagomap.infrastructure.api.publicdata.dto.PublicDataResponse;
+import kr.dagagomap.infrastructure.api.publicdata.busan.dto.BusanPublicDataResponse;
 
 @Component
-public class PublicDataClient {
+public class BusanPublicDataClient {
 
 	private final String publicDataServicekey;
 	private final RestClient restClient;
 
-	public PublicDataClient(
+	public BusanPublicDataClient(
 			@Value("${custom.public-data-service-key}")
 			String publicDataServicekey,
 			RestClient.Builder restClientBuilder) {
@@ -25,11 +25,11 @@ public class PublicDataClient {
 				.build();
 	}
 
-	public PublicDataResponse getFamilyLoveCardInfo() {
+	public BusanPublicDataResponse getFamilyLoveCardInfo() {
 		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo?ServiceKey="
 				+ publicDataServicekey
 				+ "&pageNo=1&numOfRows=9999";
-		PublicDataResponse response = restClient.get().uri(uri).retrieve().body(PublicDataResponse.class);
+		BusanPublicDataResponse response = restClient.get().uri(uri).retrieve().body(BusanPublicDataResponse.class);
 		return response;
 	}
 
