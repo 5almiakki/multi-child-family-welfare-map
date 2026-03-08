@@ -1,3 +1,0 @@
-logging:
-  level:
-    kr.dagagomap.infrastructure.api.kakao.local: "debug"
