@@ -27,10 +27,11 @@ public class BusanPublicDataClient {
 				.build();
 	}
 
-	public BusanPublicDataResponse getFamilyLoveCardInfo() {
-		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo?ServiceKey="
-				+ publicDataServicekey
-				+ "&pageNo=1&numOfRows=9999";
+	public BusanPublicDataResponse getFamilyLoveCardInfo(int pageNo, int numOfRows) {
+		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo"
+				+ "?ServiceKey=" + publicDataServicekey
+				+ "&pageNo=" + pageNo
+				+ "&numOfRows=" + numOfRows;
 		var response = restClient.get().uri(uri).retrieve().body(BusanPublicDataResponse.class);
 		log.debug("Response: {}", response);
 		return response;
