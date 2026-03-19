@@ -12,7 +12,7 @@ import tools.jackson.databind.annotation.JsonNaming;
  * @param document 응답 결과
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record KakaoLocalResponse(
+public record AddressToCoordinatesConversionResponse(
 		/** 응답 관련 정보 */
 		Meta meta,
 		/** 응답 결과 */
