@@ -6,7 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import kr.dagagomap.infrastructure.api.kakao.local.dto.KakaoLocalResponse;
+import kr.dagagomap.infrastructure.api.kakao.local.dto.AddressToCoordinatesConversionResponse;
+import kr.dagagomap.infrastructure.api.kakao.local.dto.PlaceSearchByKeywordResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -25,9 +26,21 @@ public class KakaoLocalClient {
 				.build();
 	}
 
-	public KakaoLocalResponse searchAddress(String address) {
-		String uri = "/v2/local/search/address.json?query=" + address;
-		var response = restClient.get().uri(uri).retrieve().body(KakaoLocalResponse.class);
+	public AddressToCoordinatesConversionResponse convertAddressToCoordinates(String address) {
+		String uri = "/v2/local/search/address.JSON?query=" + address;
+		var response = restClient.get().uri(uri).retrieve().body(AddressToCoordinatesConversionResponse.class);
+
+		log.debug("Response: {}", response);
+		log.debug("Documents.length: {}", response.documents().length);
+		Arrays.stream(response.documents())
+				.forEach(document -> log.debug("Document: {}", document));
+
+		return response;
+	}
+
+	public PlaceSearchByKeywordResponse searchPlaceByKeyword(String keyword) {
+		String uri = "/v2/local/search/keyword.JSON?query=" + keyword;
+		var response = restClient.get().uri(uri).retrieve().body(PlaceSearchByKeywordResponse.class);
 
 		log.debug("Response: {}", response);
 		log.debug("Documents.length: {}", response.documents().length);
