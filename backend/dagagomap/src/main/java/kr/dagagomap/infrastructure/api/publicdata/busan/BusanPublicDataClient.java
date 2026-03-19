@@ -16,7 +16,7 @@ public class BusanPublicDataClient {
 	private final RestClient restClient;
 
 	public BusanPublicDataClient(
-			@Value("${custom.public-data-service-key}")
+			@Value("${custom.public-data.busan.service-key}")
 			String publicDataServicekey,
 			RestClient.Builder restClientBuilder) {
 		this.publicDataServicekey = publicDataServicekey;

@@ -16,7 +16,7 @@ public class KakaoLocalClient {
 	private final RestClient restClient;
 
 	public KakaoLocalClient(
-			@Value("${custom.kakao-rest-api-key}")
+			@Value("${custom.kakao.rest-api-key}")
 			String restApiKey,
 			RestClient.Builder restClientBuilder) {
 		this.restClient = restClientBuilder
