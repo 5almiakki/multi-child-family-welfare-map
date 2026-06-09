@@ -1,0 +1,4 @@
+custom:
+  scheduler:
+    company-update:
+      cron: 2 0 0 * * MON
