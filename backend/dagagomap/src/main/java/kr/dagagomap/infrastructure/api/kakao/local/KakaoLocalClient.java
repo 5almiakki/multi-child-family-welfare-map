@@ -1,7 +1,5 @@
 package kr.dagagomap.infrastructure.api.kakao.local;
 
-import java.util.Arrays;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -30,11 +28,13 @@ public class KakaoLocalClient {
 		String uri = "/v2/local/search/address.JSON?query=" + address;
 		var response = restClient.get().uri(uri).retrieve().body(AddressToCoordinatesConversionResponse.class);
 
-		log.debug("Response: {}", response);
-		log.debug("Documents.length: {}", response.documents().length);
-		Arrays.stream(response.documents())
-				.forEach(document -> log.debug("Document: {}", document));
-
+		if (log.isDebugEnabled()) {
+			log.debug("Response: {}", response);
+			log.debug("Documents.length: {}", response.documents().length);
+			for (var document : response.documents()) {
+				log.debug("Document: {}", document);
+			}
+		}
 		return response;
 	}
 
@@ -42,11 +42,13 @@ public class KakaoLocalClient {
 		String uri = "/v2/local/search/keyword.JSON?query=" + keyword;
 		var response = restClient.get().uri(uri).retrieve().body(PlaceSearchByKeywordResponse.class);
 
-		log.debug("Response: {}", response);
-		log.debug("Documents.length: {}", response.documents().length);
-		Arrays.stream(response.documents())
-				.forEach(document -> log.debug("Document: {}", document));
-
+		if (log.isDebugEnabled()) {
+			log.debug("Response: {}", response);
+			log.debug("Documents.length: {}", response.documents().length);
+			for (var document : response.documents()) {
+				log.debug("Document: {}", document);
+			}
+		}
 		return response;
 	}
 
