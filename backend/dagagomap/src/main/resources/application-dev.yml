@@ -1,4 +1,0 @@
-custom:
-  scheduler:
-    company-update:
-      cron: "0 0/1 * * * *"
