@@ -34,7 +34,7 @@ public class Company {
 
 	public Company(Integer taxId, String name, String homepageUrl, String category, String gu, String ceoName,
 			String beginDate, String address, String tel, String email, String emailFlag, String description,
-			String benefit, String usageStatus, String img, String webFlag, Double latitude, Double longitude) {
+			String benefit, String usageStatus, String img, String webFlag) {
 		this.taxId = taxId;
 		this.name = name;
 		this.homepageUrl = homepageUrl;
@@ -51,6 +51,9 @@ public class Company {
 		this.usageStatus = usageStatus;
 		this.img = img;
 		this.webFlag = webFlag;
+	}
+
+	public void updateCoordinates(Double latitude, Double longitude) {
 		this.latitude = latitude;
 		this.longitude = longitude;
 	}
