@@ -10,6 +10,6 @@ spring:
 custom:
   kakao:
     local:
-      semaphore-limit: 30
+      semaphore-limit: 100
   public-data:
-    page-size: 10
+    page-size: 100
