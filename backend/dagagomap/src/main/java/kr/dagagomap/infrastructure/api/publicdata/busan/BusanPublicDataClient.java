@@ -1,10 +1,16 @@
 package kr.dagagomap.infrastructure.api.publicdata.busan;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import kr.dagagomap.exception.PublicDataApiException;
 import kr.dagagomap.infrastructure.api.publicdata.busan.dto.BusanPublicDataResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,9 +38,23 @@ public class BusanPublicDataClient {
 				+ "?ServiceKey=" + publicDataServicekey
 				+ "&pageNo=" + pageNo
 				+ "&numOfRows=" + numOfRows;
-		var response = restClient.get().uri(uri).retrieve().body(BusanPublicDataResponse.class);
+		var response = restClient.get()
+				.uri(uri)
+				.retrieve()
+				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
+				.body(BusanPublicDataResponse.class);
 		log.debug("Response: {}", response);
 		return response;
+	}
+
+	private void logErrorAndThrow(HttpRequest req, ClientHttpResponse res) throws IOException {
+		try (res; var bodyStream = res.getBody()) {
+			byte[] bodyBytes = bodyStream.readAllBytes();
+			String responseBody = new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8);
+			log.error("PublicData API Error: Status={}, Headers={}, Body={}",
+					res.getStatusCode(), res.getHeaders(), responseBody);
+			throw new PublicDataApiException("PublicData API Error: " + responseBody);
+		}
 	}
 
 }

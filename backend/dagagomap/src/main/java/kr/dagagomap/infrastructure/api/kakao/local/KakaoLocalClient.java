@@ -1,7 +1,11 @@
 package kr.dagagomap.infrastructure.api.kakao.local;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -31,18 +35,19 @@ public class KakaoLocalClient {
 		var response = restClient.get()
 				.uri(uri)
 				.retrieve()
-				.onStatus(HttpStatusCode::isError, (req, res) -> {
-					log.error("Kakao API Error: {}", res);
-					throw new KakaoApiException("Kakao API Error");
-				})
+				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
 				.body(AddressToCoordinatesConversionResponse.class);
 
 		if (log.isDebugEnabled()) {
-			log.debug("Response: {}", response);
-			log.debug("Documents.length: {}", response.documents().length);
-			for (var document : response.documents()) {
-				log.debug("Document: {}", document);
+			StringBuilder sb = new StringBuilder();
+			var documents = response.documents();
+			sb.append("Response: ").append(response)
+					.append(" / Documents.length: ").append(documents.length)
+					.append(" / Document: ");
+			for (var document : documents) {
+				sb.append(document);
 			}
+			log.debug(sb.toString());
 		}
 		return response;
 	}
@@ -52,20 +57,31 @@ public class KakaoLocalClient {
 		var response = restClient.get()
 				.uri(uri)
 				.retrieve()
-				.onStatus(HttpStatusCode::isError, (req, res) -> {
-					log.error("Kakao API Error: {}", res);
-					throw new KakaoApiException("Kakao API Error");
-				})
+				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
 				.body(PlaceSearchByKeywordResponse.class);
 
 		if (log.isDebugEnabled()) {
-			log.debug("Response: {}", response);
-			log.debug("Documents.length: {}", response.documents().length);
-			for (var document : response.documents()) {
-				log.debug("Document: {}", document);
+			StringBuilder sb = new StringBuilder();
+			var documents = response.documents();
+			sb.append("Response: ").append(response)
+					.append(" / Documents.length: ").append(documents.length)
+					.append(" / Document: ");
+			for (var document : documents) {
+				sb.append(document);
 			}
+			log.debug(sb.toString());
 		}
 		return response;
+	}
+
+	private void logErrorAndThrow(HttpRequest req, ClientHttpResponse res) throws IOException {
+		try (res; var bodyStream = res.getBody()) {
+			byte[] bodyBytes = bodyStream.readAllBytes();
+			String responseBody = new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8);
+			log.error("Kakao API Error: Status={}, Headers={}, Body={}",
+					res.getStatusCode(), res.getHeaders(), responseBody);
+			throw new KakaoApiException("Kakao API Error: " + responseBody);
+		}
 	}
 
 }
