@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
@@ -32,6 +33,7 @@ public class Company {
 	private Double latitude; // 위도
 	private Double longitude; // 경도
 
+	@Builder
 	public Company(Integer taxId, String name, String homepageUrl, String category, String gu, String ceoName,
 			String beginDate, String address, String tel, String email, String emailFlag, String description,
 			String benefit, String usageStatus, String img, String webFlag) {
