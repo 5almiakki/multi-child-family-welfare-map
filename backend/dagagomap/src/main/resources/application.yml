@@ -3,6 +3,8 @@ spring:
     name: dagagomap
   jpa:
     open-in-view: false
+  main:
+    keep-alive: true
   threads:
     virtual:
       enabled: true
