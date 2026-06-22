@@ -1,8 +1,10 @@
 package kr.dagagomap.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -50,60 +52,66 @@ public class CompanyService {
 	public void updateCompanies() {
 		log.info("== Company info update started. ==");
 		long beginTime = System.currentTimeMillis();
-		int totalSavedCount = 0;
-		for (int pageNo = 1;; pageNo++) {
-			BusanPublicDataResponse publicDataResponse =
-					publicDataClient.getFamilyLoveCardInfo(pageNo, pageSize);
-			int itemCount = publicDataResponse.body().numOfRows();
-			BusanPublicDataResponse.Body.Item[] items = publicDataResponse.body().items();
-			log.info("Public data page {} fetched, item count: {}", pageNo, itemCount);
+		ConcurrentLinkedQueue<Company> companies = new ConcurrentLinkedQueue<>();
+		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
+		combineAndCollect(
+				res.body().items(),
+				fetchCoordinatesAsync(res.body().items()),
+				companies);
 
-			AddressToCoordinatesConversionResponse[] responses = fetchCoordinatesAsync(items);
-			List<Company> companies = combine(items, responses);
-			companyJpaRepository.saveAll(companies);
-
-			totalSavedCount += itemCount;
-			if (itemCount < pageSize) {
-				break;
-			}
+		int companyCount = res.body().totalCount();
+		int pageCount = Math.ceilDiv(companyCount, pageSize);
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+		for (int pageNum = 2; pageNum <= pageCount; pageNum++) {
+			int targetPage = pageNum;
+			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+				try {
+					BusanPublicDataResponse response = publicDataClient.getFamilyLoveCardInfo(targetPage, pageSize);
+					AddressToCoordinatesConversionResponse[] responses = fetchCoordinatesAsync(response.body().items());
+					combineAndCollect(response.body().items(), responses, companies);
+				} catch (Exception e) {
+					log.error("Failed to process page [{}]. Skipping this page. Error: {}",
+							targetPage, e.getMessage(), e);
+				}
+			}, asyncTaskExecutor);
+			futures.add(future);
 		}
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+		companyJpaRepository.saveAll(companies);
 		long endTime = System.currentTimeMillis();
-		log.info("== Company info update completed. Duration: {}ms, Total saved count: {} ==",
-				endTime - beginTime, totalSavedCount);
+		log.info("== Company info update completed. Duration: {}ms ==", endTime - beginTime);
 	}
 
 	private AddressToCoordinatesConversionResponse[] fetchCoordinatesAsync(BusanPublicDataResponse.Body.Item[] items) {
-		AddressToCoordinatesConversionResponse[] responses = new AddressToCoordinatesConversionResponse[items.length];
-		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (int i = 0; i < items.length; i++) {
-			int idx = i;
-			futures.add(
-					CompletableFuture.supplyAsync(() -> {
-						try {
-							kakaoApiSemaphore.acquire();
-							return kakaoLocalClient.convertAddressToCoordinates(items[idx].cpAddr());
-						} catch (InterruptedException e) {
-							Thread.currentThread().interrupt();
-							throw new RuntimeException("Rate limiter interrupted", e);
-						} finally {
-							kakaoApiSemaphore.release();
-						}
-					}, asyncTaskExecutor)
-					.thenAccept(res -> {
-						responses[idx] = res;
-					})
-					.exceptionally(e -> {
-						log.error("Error while fetching coordinate for company. Exception: {}", e);
-						return null;
-					}));
-		}
+		List<CompletableFuture<AddressToCoordinatesConversionResponse>> futures = Arrays.stream(items)
+				.map(item ->
+						CompletableFuture.supplyAsync(() -> {
+							try {
+								kakaoApiSemaphore.acquire();
+								return kakaoLocalClient.convertAddressToCoordinates(item.cpAddr());
+							} catch (InterruptedException e) {
+								Thread.currentThread().interrupt();
+								throw new RuntimeException("Rate limiter interrupted", e);
+							} finally {
+								kakaoApiSemaphore.release();
+							}
+						}, asyncTaskExecutor)
+						.exceptionally(e -> {
+							log.error("Error while fetching coordinate for company [{}]. Error: {}",
+									item.cpCompname(), e.getMessage());
+							return null;
+						}))
+				.toList();
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-		return responses;
+		return futures.stream()
+				.map(CompletableFuture::join)
+				.toArray(AddressToCoordinatesConversionResponse[]::new);
 	}
 
-	private List<Company> combine(BusanPublicDataResponse.Body.Item[] items,
-			AddressToCoordinatesConversionResponse[] responses) {
-		List<Company> companies = new ArrayList<>();
+	private void combineAndCollect(
+			BusanPublicDataResponse.Body.Item[] items,
+			AddressToCoordinatesConversionResponse[] responses,
+			ConcurrentLinkedQueue<Company> companies) {
 		for (int i = 0; i < items.length; i++) {
 			Company company = Company.builder()
 					.taxId(Integer.valueOf(items[i].cpSanum()))
@@ -128,13 +136,11 @@ public class CompanyService {
 			} else {
 				AddressToCoordinatesConversionResponse.Document[] documents = responses[i].documents();
 				if (documents != null && documents.length > 0) {
-					company.updateCoordinates(Double.valueOf(documents[0].y()),
-							Double.valueOf(documents[0].x()));
+					company.updateCoordinates(Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
 				}
 			}
 			companies.add(company);
 		}
-		return companies;
 	}
 
 }
