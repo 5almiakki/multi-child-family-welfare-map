@@ -2,9 +2,9 @@ package kr.dagagomap.service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -52,32 +52,33 @@ public class CompanyService {
 	public void updateCompanies() {
 		log.info("== Company info update started. ==");
 		long beginTime = System.currentTimeMillis();
-		ConcurrentLinkedQueue<Company> companies = new ConcurrentLinkedQueue<>();
-		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
-		combineAndCollect(
-				res.body().items(),
-				fetchCoordinatesAsync(res.body().items()),
-				companies);
 
+		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
+		List<Company> companies = new ArrayList<>(companyCount);
+		companies.addAll(combine(res.body().items(), fetchCoordinatesAsync(res.body().items())));
+
 		int pageCount = Math.ceilDiv(companyCount, pageSize);
-		List<CompletableFuture<Void>> futures = new ArrayList<>();
+		List<CompletableFuture<List<Company>>> futures = new ArrayList<>();
 		for (int pageNum = 2; pageNum <= pageCount; pageNum++) {
 			int targetPage = pageNum;
-			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+			CompletableFuture<List<Company>> future = CompletableFuture.supplyAsync(() -> {
 				try {
 					BusanPublicDataResponse response = publicDataClient.getFamilyLoveCardInfo(targetPage, pageSize);
 					AddressToCoordinatesConversionResponse[] responses = fetchCoordinatesAsync(response.body().items());
-					combineAndCollect(response.body().items(), responses, companies);
+					return combine(response.body().items(), responses);
 				} catch (Exception e) {
-					log.error("Failed to process page [{}]. Skipping this page. Error: {}",
-							targetPage, e.getMessage(), e);
+					log.error("Failed to process page [{}]. Skipping this page", targetPage, e);
+					return Collections.emptyList();
 				}
 			}, asyncTaskExecutor);
 			futures.add(future);
 		}
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-		companyJpaRepository.saveAll(companies);
+		futures.forEach(future -> companies.addAll(future.join()));
+		if (!companies.isEmpty()) {
+			companyJpaRepository.saveAll(companies);
+		}
 		long endTime = System.currentTimeMillis();
 		log.info("== Company info update completed. Duration: {}ms ==", endTime - beginTime);
 	}
@@ -97,8 +98,7 @@ public class CompanyService {
 							}
 						}, asyncTaskExecutor)
 						.exceptionally(e -> {
-							log.error("Error while fetching coordinate for company [{}]. Error: {}",
-									item.cpCompname(), e.getMessage());
+							log.error("Error while fetching coordinate for company [{}]", item.cpCompname(), e);
 							return null;
 						}))
 				.toList();
@@ -108,10 +108,10 @@ public class CompanyService {
 				.toArray(AddressToCoordinatesConversionResponse[]::new);
 	}
 
-	private void combineAndCollect(
+	private List<Company> combine(
 			BusanPublicDataResponse.Body.Item[] items,
-			AddressToCoordinatesConversionResponse[] responses,
-			ConcurrentLinkedQueue<Company> companies) {
+			AddressToCoordinatesConversionResponse[] responses) {
+		List<Company> companies = new ArrayList<>();
 		for (int i = 0; i < items.length; i++) {
 			Company company = Company.builder()
 					.taxId(Integer.valueOf(items[i].cpSanum()))
@@ -141,6 +141,7 @@ public class CompanyService {
 			}
 			companies.add(company);
 		}
+		return companies;
 	}
 
 }
