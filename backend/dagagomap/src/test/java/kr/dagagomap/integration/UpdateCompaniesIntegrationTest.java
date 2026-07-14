@@ -57,7 +57,7 @@ class UpdateCompaniesIntegrationTest {
 			if (company.getLatitude() != null && company.getLongitude() != null) {
 				withCoordinates.add(company);
 			} else {
-				log.warn("좌표 없음 - 업체명: [{}], 주소: [{}]", company.getName(), company.getAddress());
+				log.warn("좌표 없음 - 업체명: [{}], 주소: [{}]", company.getName(), company.getSourceAddress());
 				withoutCoordinates.add(company);
 			}
 		});

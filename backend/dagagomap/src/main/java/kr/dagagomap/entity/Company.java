@@ -20,7 +20,8 @@ public class Company {
 	private String gu; // 지역(구)
 	private String ceoName; // 대표자명
 	private String beginDate; // 시행일
-	private String address; // 주소
+	private String sourceAddress; // 원본 주소
+	private String normalizedAddress; // 좌표 변환용으로 전처리한 주소
 	private String tel; // 연락처
 	private String email; // 이메일
 	private String emailFlag; // 이메일 수신여부
@@ -33,9 +34,10 @@ public class Company {
 	private Double longitude; // 경도
 
 	@Builder
-	public Company(Long taxId, String name, String homepageUrl, String category, String gu, String ceoName,
-			String beginDate, String address, String tel, String email, String emailFlag, String description,
-			String benefit, String usageStatus, String img, String webFlag) {
+	public Company(
+			Long taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
+			String sourceAddress, String normalizedAddress, String tel, String email, String emailFlag,
+			String description, String benefit, String usageStatus, String img, String webFlag) {
 		this.taxId = taxId;
 		this.name = name;
 		this.homepageUrl = homepageUrl;
@@ -43,7 +45,8 @@ public class Company {
 		this.gu = gu;
 		this.ceoName = ceoName;
 		this.beginDate = beginDate;
-		this.address = address;
+		this.sourceAddress = sourceAddress;
+		this.normalizedAddress = normalizedAddress;
 		this.tel = tel;
 		this.email = email;
 		this.emailFlag = emailFlag;
