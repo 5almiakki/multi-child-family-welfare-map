@@ -13,7 +13,7 @@ import lombok.AccessLevel;
 public class Company {
 
 	@Id
-	private Integer taxId; // 사업자번호
+	private Long taxId; // 사업자번호
 	private String name; // 참여업체명
 	private String homepageUrl; // URL
 	private String category; // 업종코드
@@ -33,7 +33,7 @@ public class Company {
 	private Double longitude; // 경도
 
 	@Builder
-	public Company(Integer taxId, String name, String homepageUrl, String category, String gu, String ceoName,
+	public Company(Long taxId, String name, String homepageUrl, String category, String gu, String ceoName,
 			String beginDate, String address, String tel, String email, String emailFlag, String description,
 			String benefit, String usageStatus, String img, String webFlag) {
 		this.taxId = taxId;

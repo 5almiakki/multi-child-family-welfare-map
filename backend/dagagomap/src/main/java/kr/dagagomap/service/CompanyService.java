@@ -120,7 +120,7 @@ public class CompanyService {
 		List<Company> companies = new ArrayList<>();
 		for (int i = 0; i < items.length; i++) {
 			Company company = Company.builder()
-					.taxId(Integer.valueOf(items[i].cpSanum()))
+					.taxId(Long.valueOf(items[i].cpSanum()))
 					.name(items[i].cpCompname())
 					.homepageUrl(items[i].cpHome())
 					.category(items[i].cpClass())
