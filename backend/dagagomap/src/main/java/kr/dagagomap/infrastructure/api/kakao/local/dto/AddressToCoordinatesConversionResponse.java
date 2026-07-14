@@ -9,7 +9,7 @@ import tools.jackson.databind.annotation.JsonNaming;
  * 주소를 좌표로 변환하는 Kakao Local API 응답
  * 
  * @param meta 응답 관련 정보
- * @param document 응답 결과
+ * @param documents 응답 결과
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AddressToCoordinatesConversionResponse(
@@ -120,9 +120,9 @@ public record AddressToCoordinatesConversionResponse(
 		 * 도로명 주소 상세 정보
 		 * 
 		 * @param addressName 전체 도로명 주소
-		 * @param region1depthName 지역명1
-		 * @param region2depthName 지역명2
-		 * @param region3depthName 지역명3
+		 * @param region1DepthName 지역명1
+		 * @param region2DepthName 지역명2
+		 * @param region3DepthName 지역명3
 		 * @param roadName 도로명
 		 * @param undergroundYn 지하 여부, <code>Y</code> 또는 <code>N</code>
 		 * @param mainBuildingNo 건물 본번
