@@ -27,6 +27,7 @@ public class CompanyService {
 
 	private final Semaphore kakaoApiSemaphore;
 	private final int pageSize;
+	private final int maxPageCount;
 
 	private final AsyncTaskExecutor asyncTaskExecutor;
 	private final BusanPublicDataClient publicDataClient;
@@ -36,12 +37,14 @@ public class CompanyService {
 	public CompanyService(
 			@Value("${custom.kakao.local.semaphore-limit:50}") int semaphoreLimit,
 			@Value("${custom.public-data.page-size:10}") int pageSize,
+			@Value("${custom.public-data.max-page-count:-1}") int maxPageCount,
 			@Qualifier("applicationTaskExecutor") AsyncTaskExecutor asyncTaskExecutor,
 			BusanPublicDataClient publicDataClient,
 			KakaoLocalClient kakaoLocalClient,
 			CompanyJpaRepository companyJpaRepository) {
 		this.kakaoApiSemaphore = new Semaphore(semaphoreLimit);
 		this.pageSize = pageSize;
+		this.maxPageCount = maxPageCount;
 		this.asyncTaskExecutor = asyncTaskExecutor;
 		this.publicDataClient = publicDataClient;
 		this.kakaoLocalClient = kakaoLocalClient;
@@ -59,6 +62,9 @@ public class CompanyService {
 		companies.addAll(combine(res.body().items(), fetchCoordinatesAsync(res.body().items())));
 
 		int pageCount = Math.ceilDiv(companyCount, pageSize);
+		if (maxPageCount != -1 && pageCount > maxPageCount) {
+			pageCount = maxPageCount;
+		}
 		List<CompletableFuture<List<Company>>> futures = new ArrayList<>();
 		for (int pageNum = 2; pageNum <= pageCount; pageNum++) {
 			int targetPage = pageNum;
