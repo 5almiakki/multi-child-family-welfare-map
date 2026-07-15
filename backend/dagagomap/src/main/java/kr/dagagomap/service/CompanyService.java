@@ -48,6 +48,15 @@ public class CompanyService {
 		this.companyJpaRepository = companyJpaRepository;
 	}
 
+	/**
+	 * 부산시 공공데이터 API의 가족사랑카드 참여 업체 정보를 DB와 동기화한다.
+	 *
+	 * <p>
+	 * 공공데이터에 존재하는 업체는 신규 등록하거나 변경된 정보를 반영하고,
+	 * 더 이상 공공데이터에 없는 업체는 제거한다.
+	 * 주소가 변경된 업체는 Kakao Local API로 좌표를 조회해 반영한다.
+	 * </p>
+	 */
 	@Scheduled(cron = "${custom.scheduler.company-update.cron:-}")
 	public void syncCompanies() {
 		log.info("== Company info update started. ==");
@@ -133,7 +142,7 @@ public class CompanyService {
 						item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
 			}
 			// 주소가 바뀐 경우
-			if (!Objects.equals(item.cpAddr(), oldCompanyMap.get(taxId).getSourceAddress())) {
+			if (!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress())) {
 				updated = true;
 				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
 				var documents = coordinates.documents();
