@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 		"custom.public-data.page-size=1",
 		"custom.public-data.max-page-count=1"
 })
-@ActiveProfiles({ "secret", "infra-integration-test" })
+@ActiveProfiles({ "secret", "test" })
 @Tag("manual-infra-integration")
 class UpdateCompaniesIntegrationTest {
 
