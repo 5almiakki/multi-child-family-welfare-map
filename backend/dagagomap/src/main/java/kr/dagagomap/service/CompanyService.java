@@ -133,9 +133,7 @@ public class CompanyService {
 			}
 			// 기존 업체인 경우
 			// 주소 제외 다른 정보가 바뀐 경우
-			boolean updated = false;
 			if (isUpdated(item, oldCompany)) {
-				updated = true;
 				oldCompany.updateWithoutCoordinates(
 						item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
 						item.cpSidate(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
@@ -143,17 +141,13 @@ public class CompanyService {
 			}
 			// 주소가 바뀐 경우
 			if (!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress())) {
-				updated = true;
 				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
 				var documents = coordinates.documents();
 				Double longitude = Double.valueOf(documents[0].x());
 				Double latitude = Double.valueOf(documents[0].y());
 				oldCompany.updateCoordinates(latitude, longitude);
 			}
-			if (updated) {
-				updatedCompanies.add(oldCompany);
-			}
-			// 아무 것도 안 바뀐 경우 아무 것도 안 함
+			updatedCompanies.add(oldCompany);
 		}
 		return updatedCompanies;
 	}
