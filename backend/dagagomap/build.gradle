@@ -47,6 +47,10 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testRuntimeOnly 'com.h2database:h2'
+
+	// QueryDSL
+	implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.1'
+	annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.1:jpa'
 }
 
 tasks.named('test') {
