@@ -3,6 +3,10 @@ package kr.dagagomap.service;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import lombok.Getter;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -65,9 +69,10 @@ public class CompanyService {
 		// 비동기 요청 시 사용할 전체 업체 수 확인을 위해 첫 페이지 조회
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
-		List<Company> companies = new ArrayList<>(companyCount);
+		List<Company> savedCompanies = new ArrayList<>();
+		Set<Long> pubDataTaxIds = new HashSet<>();
 		// 첫 페이지 내 업체 정보 저장
-		companies.addAll(getUpdatedCompanies(res.body().items()));
+		addResults(savedCompanies, pubDataTaxIds, getUpdatedCompanies(res.body().items()));
 
 		int pageCount = Math.ceilDiv(companyCount, pageSize);
 		// 페이지 조회 상한 별도 지정이 없으면 위에서 얻은 전체 업체 모두 조회
@@ -76,34 +81,36 @@ public class CompanyService {
 			pageCount = maxPageCount;
 		}
 		// 2페이지부턴 비동기로 조회
-		List<CompletableFuture<List<Company>>> futures = new ArrayList<>();
+		List<CompletableFuture<CompanySyncResult>> futures = new ArrayList<>();
 		for (int pageNum = 2; pageNum <= pageCount; pageNum++) {
 			int targetPage = pageNum;
-			CompletableFuture<List<Company>> future = CompletableFuture.supplyAsync(() -> {
+			CompletableFuture<CompanySyncResult> future = CompletableFuture.supplyAsync(() -> {
 				try {
 					BusanPublicDataResponse response = publicDataClient.getFamilyLoveCardInfo(targetPage, pageSize);
 					return getUpdatedCompanies(response.body().items());
 				} catch (Exception e) {
 					log.error("Failed to process page [{}]. Skipping this page", targetPage, e);
-					return Collections.emptyList();
+					return CompanySyncResult.empty();
 				}
 			}, asyncTaskExecutor);
 			futures.add(future);
 		}
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-		futures.forEach(future -> companies.addAll(future.join()));
-		if (!companies.isEmpty()) {
-			companyJpaRepository.saveAll(companies);
+		futures.forEach(future -> addResults(savedCompanies, pubDataTaxIds, future.join()));
+		if (!savedCompanies.isEmpty()) {
+			companyJpaRepository.saveAll(savedCompanies);
 		}
-		List<Company> deletedCompanies = companyJpaRepository.findAllByTaxIdNotIn(
-				companies.stream()
-						.map(Company::getTaxId)
-						.toList());
+		List<Company> deletedCompanies = companyJpaRepository.findAllByTaxIdNotIn(pubDataTaxIds);
 		if (!deletedCompanies.isEmpty()) {
 			companyJpaRepository.deleteAll(deletedCompanies);
 		}
 		long endTime = System.currentTimeMillis();
 		log.info("== Company info update completed. Duration: {}ms ==", endTime - beginTime);
+	}
+
+	private void addResults(List<Company> savedCompanies, Set<Long> pubDataTaxIds, CompanySyncResult result) {
+		savedCompanies.addAll(result.getSavedCompanies());
+		pubDataTaxIds.addAll(result.getPubDataTaxIds());
 	}
 
 	/**
@@ -113,27 +120,31 @@ public class CompanyService {
 	 * @param pubData 공공데이터 업체 정보
 	 * @return 기존 업체 엔티티 중 <code>pubData</code>의 내용과 다른 것의 리스트
 	 */
-	private List<Company> getUpdatedCompanies(BusanPublicDataResponse.Body.Item[] pubData) {
+	private CompanySyncResult getUpdatedCompanies(BusanPublicDataResponse.Body.Item[] pubData) {
 		List<Company> oldCompanies = companyJpaRepository.findAllById(
 				Arrays.stream(pubData)
 						.map(item -> Long.valueOf(item.cpSanum()))
 						.toList());
-		Map<Long, Company> oldCompanyMap = new HashMap<>();
-		oldCompanies.forEach(company -> oldCompanyMap.put(company.getTaxId(), company));
-		List<Company> updatedCompanies = new ArrayList<>();
+		Map<Long, Company> oldCompanyMap = oldCompanies.stream()
+				.collect(Collectors.toMap(Company::getTaxId, c -> c));
+		List<Company> savedCompanies = new ArrayList<>();
+		Set<Long> pubDataTaxIds = new HashSet<>();
 		for (var item : pubData) {
 			Long taxId = Long.valueOf(item.cpSanum());
+			pubDataTaxIds.add(taxId);
 			Company oldCompany = oldCompanyMap.remove(taxId);
 			// 아예 새 업체인 경우
 			if (oldCompany == null) {
 				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
 				Company company = combine(item, coordinates);
-				updatedCompanies.add(company);
+				savedCompanies.add(company);
 				continue;
 			}
 			// 기존 업체인 경우
 			// 주소 제외 다른 정보가 바뀐 경우
+			boolean changed = false;
 			if (isUpdated(item, oldCompany)) {
+				changed = true;
 				oldCompany.updateWithoutCoordinates(
 						item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
 						item.cpSidate(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
@@ -141,15 +152,17 @@ public class CompanyService {
 			}
 			// 주소가 바뀐 경우
 			if (!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress())) {
+				changed = true;
 				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
 				var documents = coordinates.documents();
-				Double longitude = Double.valueOf(documents[0].x());
-				Double latitude = Double.valueOf(documents[0].y());
-				oldCompany.updateCoordinates(latitude, longitude);
+				oldCompany.updateCoordinates(
+						Double.valueOf(documents[0].x()), Double.valueOf(documents[0].y()));
 			}
-			updatedCompanies.add(oldCompany);
+			if (changed) {
+				savedCompanies.add(oldCompany);
+			}
 		}
-		return updatedCompanies;
+		return new CompanySyncResult(savedCompanies, pubDataTaxIds);
 	}
 
 	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(BusanPublicDataResponse.Body.Item item) {
@@ -224,6 +237,23 @@ public class CompanyService {
 				|| !Objects.equals(item.cpState(), oldCompany.getUsageStatus())
 				|| !Objects.equals(item.cpImg(), oldCompany.getImg())
 				|| !Objects.equals(item.cpWebflag(), oldCompany.getWebFlag());
+	}
+
+	@Getter
+	private static class CompanySyncResult {
+
+		private final List<Company> savedCompanies;
+		private final Set<Long> pubDataTaxIds;
+
+		public CompanySyncResult(List<Company> savedCompanies, Set<Long> pubDataTaxIds) {
+			this.savedCompanies = savedCompanies;
+			this.pubDataTaxIds = pubDataTaxIds;
+		}
+
+		public static CompanySyncResult empty() {
+			return new CompanySyncResult(Collections.emptyList(), Collections.emptySet());
+		}
+
 	}
 
 }
