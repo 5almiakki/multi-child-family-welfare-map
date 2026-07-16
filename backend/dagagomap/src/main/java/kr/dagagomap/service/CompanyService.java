@@ -54,12 +54,10 @@ public class CompanyService {
 
 	/**
 	 * 부산시 공공데이터 API의 가족사랑카드 참여 업체 정보를 DB와 동기화한다.
-	 *
-	 * <p>
+	 * <br>
 	 * 공공데이터에 존재하는 업체는 신규 등록하거나 변경된 정보를 반영하고,
 	 * 더 이상 공공데이터에 없는 업체는 제거한다.
 	 * 주소가 변경된 업체는 Kakao Local API로 좌표를 조회해 반영한다.
-	 * </p>
 	 */
 	@Scheduled(cron = "${custom.scheduler.company-update.cron:-}")
 	public void syncCompanies() {
@@ -115,7 +113,11 @@ public class CompanyService {
 
 	/**
 	 * 기존 업체 엔티티 중 주어진 공공데이터 업체 정보 <code>pubData</code>의 내용과 다른 것을 고르고
-	 * <code>pubData</code>의 내용을 반영해 리스트에 담고 반환
+	 * <code>pubData</code>의 내용을 반영해 리스트에 담는다.
+	 * <br>
+	 * DB에서 없앨 대상을 찾기 위해 <code>pubData</code> 내 모든 사업자번호를 셋에 담는다.
+	 * <br>
+	 * 이 리스트와 셋을 포함하는 객체를 반환한다.
 	 *
 	 * @param pubData 공공데이터 업체 정보
 	 * @return 기존 업체 엔티티 중 <code>pubData</code>의 내용과 다른 것의 리스트
@@ -215,7 +217,7 @@ public class CompanyService {
 	}
 
 	/**
-	 * 기존 업체 정보 중 주소를 제외한 나머지가 바뀌었는지를 반환
+	 * 기존 업체 정보 중 주소를 제외한 나머지가 바뀌었는지를 반환한다.
 	 *
 	 * @param item 공공데이터에서 가져온 업체 정보
 	 * @param oldCompany <code>item</code>과 사업자번호가 같은 업체 엔티티
