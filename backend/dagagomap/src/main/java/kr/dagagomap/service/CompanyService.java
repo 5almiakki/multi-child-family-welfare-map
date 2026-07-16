@@ -156,7 +156,7 @@ public class CompanyService {
 				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
 				var documents = coordinates.documents();
 				oldCompany.updateCoordinates(
-						Double.valueOf(documents[0].x()), Double.valueOf(documents[0].y()));
+						Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
 			}
 			if (changed) {
 				savedCompanies.add(oldCompany);
