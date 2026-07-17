@@ -10,9 +10,9 @@ import com.fasterxml.jackson.annotation.JsonRootName;
  */
 @JsonRootName("response")
 public record BusanPublicDataResponse(
-		/** 응답 관련 정보 */
+		/* 응답 관련 정보 */
 		Header header,
-		/** 응답 결과 */
+		/* 응답 결과 */
 		Body body
 ) {
 
@@ -23,9 +23,9 @@ public record BusanPublicDataResponse(
 	 * @param resultMsg 결과메시지
 	 */
 	public static record Header(
-			/** 결과코드 */
+			/* 결과코드 */
 			Integer resultCode,
-			/** 결과메시지 */
+			/* 결과메시지 */
 			String resultMsg
 	) {}
 
@@ -38,13 +38,13 @@ public record BusanPublicDataResponse(
 	 * @param items 업체 정보들
 	 */
 	public static record Body(
-			/** 전체 결과 수 */
+			/* 전체 결과 수 */
 			Integer totalCount,
-			/** 한 페이지 결과 수 */
+			/* 한 페이지 결과 수 */
 			Integer numOfRows,
-			/** 페이지 번호 */
+			/* 페이지 번호 */
 			Integer pageNo,
-			/** 업체 정보들 */
+			/* 업체 정보들 */
 			Item[] items
 	) {
 
@@ -69,37 +69,37 @@ public record BusanPublicDataResponse(
 		 * @param cpWebflag 승인여부
 		 */
 		public static record Item(
-				/** 참여업체명 */
+				/* 참여업체명 */
 				String cpCompname,
-				/** URL */
+				/* URL */
 				String cpHome,
-				/** 업종코드 */
+				/* 업종코드 */
 				String cpClass,
-				/** 지역 */
+				/* 지역 */
 				String cpHgu,
-				/** 대표자명 */
+				/* 대표자명 */
 				String cpCeoname,
-				/** 사업자번호 */
+				/* 사업자번호 */
 				String cpSanum,
-				/** 시행일 */
+				/* 시행일 */
 				String cpSidate,
-				/** 주소 */
+				/* 주소 */
 				String cpAddr,
-				/** 연락처 */
+				/* 연락처 */
 				String cpTel,
-				/** 이메일 */
+				/* 이메일 */
 				String cpEmail,
-				/** 이메일 수신여부 */
+				/* 이메일 수신여부 */
 				String cpEmailflag,
-				/** 회사소개 */
+				/* 회사소개 */
 				String cpInfo,
-				/** 우대 내용 */
+				/* 우대 내용 */
 				String cpWoo,
-				/** 사용여부 */
+				/* 사용여부 */
 				String cpState,
-				/** 첨부파일 */
+				/* 첨부파일 */
 				String cpImg,
-				/** 승인여부 */
+				/* 승인여부 */
 				String cpWebflag
 		) {}
 
