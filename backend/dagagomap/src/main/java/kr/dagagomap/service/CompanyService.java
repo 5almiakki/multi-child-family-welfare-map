@@ -3,7 +3,6 @@ package kr.dagagomap.service;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
@@ -156,9 +155,7 @@ public class CompanyService {
 			if (!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress())) {
 				changed = true;
 				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
-				var documents = coordinates.documents();
-				oldCompany.updateCoordinates(
-						Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
+				updateCoordinatesIfExists(oldCompany, coordinates);
 			}
 			if (changed) {
 				savedCompanies.add(oldCompany);
@@ -205,14 +202,7 @@ public class CompanyService {
 				.img(item.cpImg())
 				.webFlag(item.cpWebflag())
 				.build();
-		if (response == null) {
-			log.warn("Company [{}] has no coordinate data due to API failure.", item.cpCompname());
-		} else {
-			AddressToCoordinatesConversionResponse.Document[] documents = response.documents();
-			if (documents != null && documents.length > 0) {
-				company.updateCoordinates(Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
-			}
-		}
+		updateCoordinatesIfExists(company, response);
 		return company;
 	}
 
@@ -239,6 +229,17 @@ public class CompanyService {
 				|| !Objects.equals(item.cpState(), oldCompany.getUsageStatus())
 				|| !Objects.equals(item.cpImg(), oldCompany.getImg())
 				|| !Objects.equals(item.cpWebflag(), oldCompany.getWebFlag());
+	}
+
+	private void updateCoordinatesIfExists(Company company, AddressToCoordinatesConversionResponse response) {
+		if (response == null) {
+			log.warn("Company [{}] has no coordinate data due to API failure.", company.getName());
+		} else {
+			AddressToCoordinatesConversionResponse.Document[] documents = response.documents();
+			if (documents != null && documents.length > 0) {
+				company.updateCoordinates(Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
+			}
+		}
 	}
 
 	@Getter
