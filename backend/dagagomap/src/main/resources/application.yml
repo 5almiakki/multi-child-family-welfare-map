@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: dagagomap
+  jpa:
+    open-in-view: false
+  main:
+    keep-alive: true
+  threads:
+    virtual:
+      enabled: true
+
+custom:
+  kakao:
+    local:
+      semaphore-limit: 100
+  public-data:
+    page-size: 100

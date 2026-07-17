@@ -1,0 +1,9 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+custom:
+  scheduler:
+    company-update:
+      cron: 0 0 3 ? * MON
