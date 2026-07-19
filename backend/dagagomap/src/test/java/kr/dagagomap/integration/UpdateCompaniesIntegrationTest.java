@@ -1,7 +1,7 @@
 package kr.dagagomap.integration;
 
 import kr.dagagomap.entity.Company;
-import kr.dagagomap.repository.CompanyJpaRepository;
+import kr.dagagomap.repository.CompanyRepository;
 import kr.dagagomap.service.CompanySyncBatchService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,11 +30,11 @@ class UpdateCompaniesIntegrationTest {
 	private CompanySyncBatchService companySyncBatchService;
 
 	@Autowired
-	private CompanyJpaRepository companyJpaRepository;
+	private CompanyRepository companyRepository;
 
 	@BeforeEach
 	void cleanUp() {
-		companyJpaRepository.deleteAll();
+		companyRepository.deleteAll();
 	}
 
 	@Test
@@ -44,7 +44,7 @@ class UpdateCompaniesIntegrationTest {
 		companySyncBatchService.syncCompanies();
 
 		// Then: DB에 실제로 저장되었는지 검증
-		List<Company> savedCompanies = companyJpaRepository.findAll();
+		List<Company> savedCompanies = companyRepository.findAll();
 
 		// 1. 하나라도 저장되어 있어야 함
 		assertThat(savedCompanies).isNotEmpty();

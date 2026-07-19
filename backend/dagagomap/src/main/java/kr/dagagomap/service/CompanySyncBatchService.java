@@ -15,7 +15,7 @@ import kr.dagagomap.infrastructure.api.kakao.local.KakaoLocalClient;
 import kr.dagagomap.infrastructure.api.kakao.local.dto.AddressToCoordinatesConversionResponse;
 import kr.dagagomap.infrastructure.api.publicdata.busan.BusanPublicDataClient;
 import kr.dagagomap.infrastructure.api.publicdata.busan.dto.BusanPublicDataResponse;
-import kr.dagagomap.repository.CompanyJpaRepository;
+import kr.dagagomap.repository.CompanyRepository;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -32,7 +32,7 @@ public class CompanySyncBatchService {
 	private final AsyncTaskExecutor asyncTaskExecutor;
 	private final BusanPublicDataClient publicDataClient;
 	private final KakaoLocalClient kakaoLocalClient;
-	private final CompanyJpaRepository companyJpaRepository;
+	private final CompanyRepository companyRepository;
 
 	public CompanySyncBatchService(
 			@Value("${custom.kakao.local.semaphore-limit:50}") int semaphoreLimit,
@@ -41,14 +41,14 @@ public class CompanySyncBatchService {
 			@Qualifier("applicationTaskExecutor") AsyncTaskExecutor asyncTaskExecutor,
 			BusanPublicDataClient publicDataClient,
 			KakaoLocalClient kakaoLocalClient,
-			CompanyJpaRepository companyJpaRepository) {
+			CompanyRepository companyRepository) {
 		this.kakaoApiSemaphore = new Semaphore(semaphoreLimit);
 		this.pageSize = pageSize;
 		this.maxPageCount = maxPageCount;
 		this.asyncTaskExecutor = asyncTaskExecutor;
 		this.publicDataClient = publicDataClient;
 		this.kakaoLocalClient = kakaoLocalClient;
-		this.companyJpaRepository = companyJpaRepository;
+		this.companyRepository = companyRepository;
 	}
 
 	/**
@@ -95,11 +95,11 @@ public class CompanySyncBatchService {
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 		futures.forEach(future -> addResults(savedCompanies, pubDataTaxIds, future.join()));
 		if (!savedCompanies.isEmpty()) {
-			companyJpaRepository.saveAll(savedCompanies);
+			companyRepository.saveAll(savedCompanies);
 		}
-		List<Company> deletedCompanies = companyJpaRepository.findAllByTaxIdNotIn(pubDataTaxIds);
+		List<Company> deletedCompanies = companyRepository.findAllByTaxIdNotIn(pubDataTaxIds);
 		if (!deletedCompanies.isEmpty()) {
-			companyJpaRepository.deleteAll(deletedCompanies);
+			companyRepository.deleteAll(deletedCompanies);
 		}
 		long endTime = System.currentTimeMillis();
 		log.info("== Company info update completed. Duration: {}ms ==", endTime - beginTime);
@@ -122,7 +122,7 @@ public class CompanySyncBatchService {
 	 * @return 기존 업체 엔티티 중 <code>pubData</code>의 내용과 다른 것의 리스트
 	 */
 	private CompanySyncResult getUpdatedCompanies(BusanPublicDataResponse.Body.Item[] pubData) {
-		List<Company> oldCompanies = companyJpaRepository.findAllById(
+		List<Company> oldCompanies = companyRepository.findAllById(
 				Arrays.stream(pubData)
 						.map(item -> Long.valueOf(item.cpSanum()))
 						.toList());
