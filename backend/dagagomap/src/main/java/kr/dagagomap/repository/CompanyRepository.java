@@ -7,7 +7,7 @@ import kr.dagagomap.entity.Company;
 import java.util.Collection;
 import java.util.List;
 
-public interface CompanyRepository extends JpaRepository<Company, Long> {
+public interface CompanyRepository extends JpaRepository<Company, Long>, CompanyRepositoryCustom {
 
 	List<Company> findAllByTaxIdNotIn(Collection<Long> taxIds);
 
