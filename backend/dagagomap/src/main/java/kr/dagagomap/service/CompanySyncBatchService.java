@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
-public class CompanyService {
+public class CompanySyncBatchService {
 
 	private final Semaphore kakaoApiSemaphore;
 	private final int pageSize;
@@ -34,7 +34,7 @@ public class CompanyService {
 	private final KakaoLocalClient kakaoLocalClient;
 	private final CompanyJpaRepository companyJpaRepository;
 
-	public CompanyService(
+	public CompanySyncBatchService(
 			@Value("${custom.kakao.local.semaphore-limit:50}") int semaphoreLimit,
 			@Value("${custom.public-data.page-size:10}") int pageSize,
 			@Value("${custom.public-data.max-page-count:-1}") int maxPageCount,

@@ -25,13 +25,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = {
-		"logging.level.kr.dagagomap.service.CompanyService=DEBUG"
+		"logging.level.kr.dagagomap.service.CompanySyncBatchService=DEBUG"
 })
 @ActiveProfiles("test")
-class CompanyServiceSyncTest {
+class CompanySyncBatchServiceSyncTest {
 
 	@Autowired
-	private CompanyService companyService;
+	private CompanySyncBatchService companySyncBatchService;
 
 	@Autowired
 	private CompanyJpaRepository companyJpaRepository;
@@ -55,7 +55,7 @@ class CompanyServiceSyncTest {
 		when(kakaoLocalClient.convertAddressToCoordinates("부산 해운대구 우동 1"))
 				.thenReturn(coordinates(35.1796, 129.0756));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
 		List<Company> companies = companyJpaRepository.findAll();
 		assertThat(companies).hasSize(1);
@@ -73,7 +73,7 @@ class CompanyServiceSyncTest {
 		BusanPublicDataResponse.Body.Item updatedItem = item("2020202020", "신이름", "부산 해운대구 좌동 10");
 		stubSinglePage(updatedItem);
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
 		Company company = companyJpaRepository.findById(2020202020L).orElseThrow();
 		assertThat(company.getName()).isEqualTo("신이름");
@@ -92,7 +92,7 @@ class CompanyServiceSyncTest {
 		when(kakaoLocalClient.convertAddressToCoordinates("부산 수영구 광안동 2"))
 				.thenReturn(coordinates(35.1532, 129.1186));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
 		Company updated = companyJpaRepository.findById(3030303030L).orElseThrow();
 		assertThat(updated.getLatitude()).isEqualTo(35.1532);
@@ -107,7 +107,7 @@ class CompanyServiceSyncTest {
 		companyJpaRepository.save(existingCompanyMatching(sameItem));
 		stubSinglePage(sameItem);
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
 		Company company = companyJpaRepository.findById(4040404040L).orElseThrow();
 		assertThat(company.getHomepageUrl()).isEqualTo(sameItem.cpHome());
@@ -121,7 +121,7 @@ class CompanyServiceSyncTest {
 		BusanPublicDataResponse.Body.Item activeItem = item("6060606060", "유지대상", "부산 해운대구 우동 5");
 		stubSinglePage(activeItem);
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
 		assertThat(companyJpaRepository.findById(6060606060L)).isPresent();
 		assertThat(companyJpaRepository.findById(5050505050L)).isEmpty();
@@ -140,7 +140,7 @@ class CompanyServiceSyncTest {
 		when(publicDataClient.getFamilyLoveCardInfo(3, 2))
 				.thenThrow(new RuntimeException("should not request third page"));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
 		assertThat(companyJpaRepository.findAll())
 				.extracting(Company::getTaxId)
@@ -160,7 +160,7 @@ class CompanyServiceSyncTest {
 		when(publicDataClient.getFamilyLoveCardInfo(2, 2))
 				.thenThrow(new RuntimeException("public data timeout"));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
 		assertThat(companyJpaRepository.findAll())
 				.extracting(Company::getTaxId)
