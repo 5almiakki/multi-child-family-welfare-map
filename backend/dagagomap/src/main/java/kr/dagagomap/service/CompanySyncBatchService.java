@@ -2,7 +2,6 @@ package kr.dagagomap.service;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
@@ -34,7 +33,6 @@ public class CompanySyncBatchService {
 	private final CompanyRepository companyRepository;
 
 	public CompanySyncBatchService(
-			@Value("${custom.kakao.local.semaphore-limit:50}") int semaphoreLimit,
 			@Value("${custom.public-data.page-size:10}") int pageSize,
 			@Value("${custom.public-data.max-page-count:-1}") int maxPageCount,
 			@Qualifier("applicationTaskExecutor") AsyncTaskExecutor asyncTaskExecutor,
