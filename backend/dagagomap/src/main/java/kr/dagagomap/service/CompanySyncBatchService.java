@@ -146,7 +146,7 @@ public class CompanySyncBatchService {
 			boolean changed = false;
 			if (isUpdated(item, oldCompany)) {
 				changed = true;
-				oldCompany.updateWithoutCoordinates(
+				oldCompany.updateWithoutAddressCoordinates(
 						item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
 						item.cpSidate(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
 						item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
