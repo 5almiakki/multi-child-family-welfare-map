@@ -25,7 +25,6 @@ import org.springframework.beans.factory.annotation.Value;
 @Service
 public class CompanySyncBatchService {
 
-	private final Semaphore kakaoApiSemaphore;
 	private final int pageSize;
 	private final int maxPageCount;
 
@@ -42,7 +41,6 @@ public class CompanySyncBatchService {
 			BusanPublicDataClient publicDataClient,
 			KakaoLocalClient kakaoLocalClient,
 			CompanyRepository companyRepository) {
-		this.kakaoApiSemaphore = new Semaphore(semaphoreLimit);
 		this.pageSize = pageSize;
 		this.maxPageCount = maxPageCount;
 		this.asyncTaskExecutor = asyncTaskExecutor;
@@ -166,17 +164,9 @@ public class CompanySyncBatchService {
 
 	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(BusanPublicDataResponse.Body.Item item) {
 		CompletableFuture<AddressToCoordinatesConversionResponse> future = CompletableFuture.supplyAsync(() -> {
-			try {
-				kakaoApiSemaphore.acquire();
-				var response = kakaoLocalClient.convertAddressToCoordinates(item.cpAddr());
-				// TODO 좌표로 변환 못 한 경우 다른 방법으로 재시도
-				return response;
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new RuntimeException("Rate limiter interrupted", e);
-			} finally {
-				kakaoApiSemaphore.release();
-			}
+			var response = kakaoLocalClient.convertAddressToCoordinates(item.cpAddr());
+			// TODO 좌표로 변환 못 한 경우 다른 방법으로 재시도
+			return response;
 		}, asyncTaskExecutor);
 		return future.join();
 	}
