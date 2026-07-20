@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.resilience.annotation.ConcurrencyLimit;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -30,6 +32,8 @@ public class KakaoLocalClient {
 				.build();
 	}
 
+	@Retryable
+	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:50}")
 	public AddressToCoordinatesConversionResponse convertAddressToCoordinates(String address) {
 		String uri = "/v2/local/search/address.JSON?query=" + address;
 		var response = restClient.get()
@@ -37,21 +41,12 @@ public class KakaoLocalClient {
 				.retrieve()
 				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
 				.body(AddressToCoordinatesConversionResponse.class);
-
-		if (log.isDebugEnabled()) {
-			StringBuilder sb = new StringBuilder();
-			var documents = response.documents();
-			sb.append("Response: ").append(response)
-					.append(" / Documents.length: ").append(documents.length)
-					.append(" / Document: ");
-			for (var document : documents) {
-				sb.append(document);
-			}
-			log.debug(sb.toString());
-		}
+		logDebugIfNotNull(response);
 		return response;
 	}
 
+	@Retryable
+	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:50}")
 	public PlaceSearchByKeywordResponse searchPlaceByKeyword(String keyword) {
 		String uri = "/v2/local/search/keyword.JSON?query=" + keyword;
 		var response = restClient.get()
@@ -59,19 +54,44 @@ public class KakaoLocalClient {
 				.retrieve()
 				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
 				.body(PlaceSearchByKeywordResponse.class);
-
-		if (log.isDebugEnabled()) {
-			StringBuilder sb = new StringBuilder();
-			var documents = response.documents();
-			sb.append("Response: ").append(response)
-					.append(" / Documents.length: ").append(documents.length)
-					.append(" / Document: ");
-			for (var document : documents) {
-				sb.append(document);
-			}
-			log.debug(sb.toString());
-		}
+		logDebugIfNotNull(response);
 		return response;
+	}
+
+	private void logDebugIfNotNull(AddressToCoordinatesConversionResponse response) {
+		if (!log.isDebugEnabled() || response == null) {
+			return;
+		}
+		var documents = response.documents();
+		if (documents == null) {
+			return;
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append("Response: ").append(response)
+				.append(" / Documents.length: ").append(documents.length)
+				.append(" / Document: ");
+		for (var document : documents) {
+			sb.append(document);
+		}
+		log.debug(sb.toString());
+	}
+
+	private void logDebugIfNotNull(PlaceSearchByKeywordResponse response) {
+		if (!log.isDebugEnabled() || response == null) {
+			return;
+		}
+		var documents = response.documents();
+		if (documents == null) {
+			return;
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append("Response: ").append(response)
+				.append(" / Documents.length: ").append(documents.length)
+				.append(" / Document: ");
+		for (var document : documents) {
+			sb.append(document);
+		}
+		log.debug(sb.toString());
 	}
 
 	private void logErrorAndThrow(HttpRequest req, ClientHttpResponse res) throws IOException {

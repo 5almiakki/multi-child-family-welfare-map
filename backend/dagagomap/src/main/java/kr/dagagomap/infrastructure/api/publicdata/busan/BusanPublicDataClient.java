@@ -7,6 +7,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -33,6 +34,7 @@ public class BusanPublicDataClient {
 				.build();
 	}
 
+	@Retryable
 	public BusanPublicDataResponse getFamilyLoveCardInfo(int pageNo, int numOfRows) {
 		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo"
 				+ "?ServiceKey=" + publicDataServicekey

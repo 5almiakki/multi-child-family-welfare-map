@@ -12,6 +12,6 @@ spring:
 custom:
   kakao:
     local:
-      semaphore-limit: 100
+      concurrency-limit: 100
   public-data:
     page-size: 100
