@@ -39,18 +39,7 @@ public class KakaoLocalClient {
 				.retrieve()
 				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
 				.body(AddressToCoordinatesConversionResponse.class);
-
-		if (log.isDebugEnabled()) {
-			StringBuilder sb = new StringBuilder();
-			var documents = response.documents();
-			sb.append("Response: ").append(response)
-					.append(" / Documents.length: ").append(documents.length)
-					.append(" / Document: ");
-			for (var document : documents) {
-				sb.append(document);
-			}
-			log.debug(sb.toString());
-		}
+		logDebugIfNotNull(response);
 		return response;
 	}
 
@@ -61,19 +50,44 @@ public class KakaoLocalClient {
 				.retrieve()
 				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
 				.body(PlaceSearchByKeywordResponse.class);
-
-		if (log.isDebugEnabled()) {
-			StringBuilder sb = new StringBuilder();
-			var documents = response.documents();
-			sb.append("Response: ").append(response)
-					.append(" / Documents.length: ").append(documents.length)
-					.append(" / Document: ");
-			for (var document : documents) {
-				sb.append(document);
-			}
-			log.debug(sb.toString());
-		}
+		logDebugIfNotNull(response);
 		return response;
+	}
+
+	private void logDebugIfNotNull(AddressToCoordinatesConversionResponse response) {
+		if (!log.isDebugEnabled() || response == null) {
+			return;
+		}
+		var documents = response.documents();
+		if (documents == null) {
+			return;
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append("Response: ").append(response)
+				.append(" / Documents.length: ").append(documents.length)
+				.append(" / Document: ");
+		for (var document : documents) {
+			sb.append(document);
+		}
+		log.debug(sb.toString());
+	}
+
+	private void logDebugIfNotNull(PlaceSearchByKeywordResponse response) {
+		if (!log.isDebugEnabled() || response == null) {
+			return;
+		}
+		var documents = response.documents();
+		if (documents == null) {
+			return;
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append("Response: ").append(response)
+				.append(" / Documents.length: ").append(documents.length)
+				.append(" / Document: ");
+		for (var document : documents) {
+			sb.append(document);
+		}
+		log.debug(sb.toString());
 	}
 
 	private void logErrorAndThrow(HttpRequest req, ClientHttpResponse res) throws IOException {
