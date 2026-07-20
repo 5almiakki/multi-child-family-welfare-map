@@ -1,7 +1,6 @@
 package kr.dagagomap.controller.dto.response;
 
 import kr.dagagomap.entity.Company;
-import lombok.Builder;
 import lombok.Getter;
 
 @Getter
