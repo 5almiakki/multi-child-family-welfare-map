@@ -7,6 +7,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.resilience.annotation.ConcurrencyLimit;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -31,6 +32,7 @@ public class KakaoLocalClient {
 				.build();
 	}
 
+	@Retryable
 	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:50}")
 	public AddressToCoordinatesConversionResponse convertAddressToCoordinates(String address) {
 		String uri = "/v2/local/search/address.JSON?query=" + address;
@@ -43,6 +45,8 @@ public class KakaoLocalClient {
 		return response;
 	}
 
+	@Retryable
+	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:50}")
 	public PlaceSearchByKeywordResponse searchPlaceByKeyword(String keyword) {
 		String uri = "/v2/local/search/keyword.JSON?query=" + keyword;
 		var response = restClient.get()
