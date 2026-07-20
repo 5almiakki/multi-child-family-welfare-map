@@ -4,7 +4,7 @@ import kr.dagagomap.entity.Company;
 import kr.dagagomap.infrastructure.api.kakao.local.KakaoLocalClient;
 import kr.dagagomap.infrastructure.api.publicdata.busan.BusanPublicDataClient;
 import kr.dagagomap.infrastructure.api.publicdata.busan.dto.BusanPublicDataResponse;
-import kr.dagagomap.repository.CompanyJpaRepository;
+import kr.dagagomap.repository.CompanyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,16 +25,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = {
-		"logging.level.kr.dagagomap.service.CompanyService=DEBUG"
+		"logging.level.kr.dagagomap.service.CompanySyncBatchService=DEBUG"
 })
 @ActiveProfiles("test")
-class CompanyServiceSyncTest {
+class CompanySyncBatchServiceSyncTest {
 
 	@Autowired
-	private CompanyService companyService;
+	private CompanySyncBatchService companySyncBatchService;
 
 	@Autowired
-	private CompanyJpaRepository companyJpaRepository;
+	private CompanyRepository companyRepository;
 
 	@MockitoBean
 	private BusanPublicDataClient publicDataClient;
@@ -44,7 +44,7 @@ class CompanyServiceSyncTest {
 
 	@BeforeEach
 	void setUp() {
-		companyJpaRepository.deleteAll();
+		companyRepository.deleteAll();
 	}
 
 	@Test
@@ -55,9 +55,9 @@ class CompanyServiceSyncTest {
 		when(kakaoLocalClient.convertAddressToCoordinates("부산 해운대구 우동 1"))
 				.thenReturn(coordinates(35.1796, 129.0756));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
-		List<Company> companies = companyJpaRepository.findAll();
+		List<Company> companies = companyRepository.findAll();
 		assertThat(companies).hasSize(1);
 		assertThat(companies.get(0).getTaxId()).isEqualTo(1010101010L);
 		assertThat(companies.get(0).getName()).isEqualTo("신규카페");
@@ -69,13 +69,13 @@ class CompanyServiceSyncTest {
 	@Test
 	@DisplayName("기존 업체의 주소를 제외하고 변경된 정보를 반영한다")
 	void updatesChangedCompanyFields() {
-		companyJpaRepository.save(existingCompany(2020202020L, "구이름", "부산 해운대구 좌동 10"));
+		companyRepository.save(existingCompany(2020202020L, "구이름", "부산 해운대구 좌동 10"));
 		BusanPublicDataResponse.Body.Item updatedItem = item("2020202020", "신이름", "부산 해운대구 좌동 10");
 		stubSinglePage(updatedItem);
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
-		Company company = companyJpaRepository.findById(2020202020L).orElseThrow();
+		Company company = companyRepository.findById(2020202020L).orElseThrow();
 		assertThat(company.getName()).isEqualTo("신이름");
 		verify(kakaoLocalClient, never()).convertAddressToCoordinates(anyString());
 	}
@@ -85,16 +85,16 @@ class CompanyServiceSyncTest {
 	void refetchesCoordinatesWhenAddressChanges() {
 		Company company = existingCompany(3030303030L, "좌표갱신상점", "부산 해운대구 중동 1");
 		company.updateCoordinates(1.0, 1.0);
-		companyJpaRepository.save(company);
+		companyRepository.save(company);
 
 		BusanPublicDataResponse.Body.Item movedItem = item("3030303030", "좌표갱신상점", "부산 수영구 광안동 2");
 		stubSinglePage(movedItem);
 		when(kakaoLocalClient.convertAddressToCoordinates("부산 수영구 광안동 2"))
 				.thenReturn(coordinates(35.1532, 129.1186));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
-		Company updated = companyJpaRepository.findById(3030303030L).orElseThrow();
+		Company updated = companyRepository.findById(3030303030L).orElseThrow();
 		assertThat(updated.getLatitude()).isEqualTo(35.1532);
 		assertThat(updated.getLongitude()).isEqualTo(129.1186);
 		verify(kakaoLocalClient).convertAddressToCoordinates("부산 수영구 광안동 2");
@@ -104,12 +104,12 @@ class CompanyServiceSyncTest {
 	@DisplayName("변경되지 않은 기존 업체는 저장 대상에서 제외한다")
 	void skipsUnchangedCompanies() {
 		BusanPublicDataResponse.Body.Item sameItem = item("4040404040", "변경없음", "부산 해운대구 우동 3");
-		companyJpaRepository.save(existingCompanyMatching(sameItem));
+		companyRepository.save(existingCompanyMatching(sameItem));
 		stubSinglePage(sameItem);
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
-		Company company = companyJpaRepository.findById(4040404040L).orElseThrow();
+		Company company = companyRepository.findById(4040404040L).orElseThrow();
 		assertThat(company.getHomepageUrl()).isEqualTo(sameItem.cpHome());
 		verify(kakaoLocalClient, never()).convertAddressToCoordinates(anyString());
 	}
@@ -117,14 +117,14 @@ class CompanyServiceSyncTest {
 	@Test
 	@DisplayName("공공데이터에 없는 기존 업체를 완전히 삭제한다")
 	void deletesCompaniesMissingFromPublicData() {
-		companyJpaRepository.save(existingCompany(5050505050L, "삭제대상", "부산 해운대구 우동 4"));
+		companyRepository.save(existingCompany(5050505050L, "삭제대상", "부산 해운대구 우동 4"));
 		BusanPublicDataResponse.Body.Item activeItem = item("6060606060", "유지대상", "부산 해운대구 우동 5");
 		stubSinglePage(activeItem);
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
-		assertThat(companyJpaRepository.findById(6060606060L)).isPresent();
-		assertThat(companyJpaRepository.findById(5050505050L)).isEmpty();
+		assertThat(companyRepository.findById(6060606060L)).isPresent();
+		assertThat(companyRepository.findById(5050505050L)).isEmpty();
 	}
 
 	@Test
@@ -140,9 +140,9 @@ class CompanyServiceSyncTest {
 		when(publicDataClient.getFamilyLoveCardInfo(3, 2))
 				.thenThrow(new RuntimeException("should not request third page"));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
-		assertThat(companyJpaRepository.findAll())
+		assertThat(companyRepository.findAll())
 				.extracting(Company::getTaxId)
 				.containsExactlyInAnyOrder(7070707070L, 8080808080L);
 		verify(publicDataClient).getFamilyLoveCardInfo(1, 2);
@@ -160,9 +160,9 @@ class CompanyServiceSyncTest {
 		when(publicDataClient.getFamilyLoveCardInfo(2, 2))
 				.thenThrow(new RuntimeException("public data timeout"));
 
-		companyService.syncCompanies();
+		companySyncBatchService.syncCompanies();
 
-		assertThat(companyJpaRepository.findAll())
+		assertThat(companyRepository.findAll())
 				.extracting(Company::getTaxId)
 				.containsExactly(9090909090L);
 	}
