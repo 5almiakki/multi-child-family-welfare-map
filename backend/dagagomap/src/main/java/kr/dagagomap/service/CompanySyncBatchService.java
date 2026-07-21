@@ -2,6 +2,7 @@ package kr.dagagomap.service;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
@@ -59,6 +60,14 @@ public class CompanySyncBatchService {
 		log.info("== Company info update started. ==");
 		long beginTime = System.currentTimeMillis();
 
+		syncCompaniesWithPublicData();
+		updateCoordinatesWhereRequired();
+
+		long endTime = System.currentTimeMillis();
+		log.info("== Company info update completed. Duration: {}ms ==", endTime - beginTime);
+	}
+
+	private void syncCompaniesWithPublicData() {
 		// 비동기 요청 시 사용할 전체 업체 수 확인을 위해 첫 페이지 조회
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
@@ -73,8 +82,9 @@ public class CompanySyncBatchService {
 		if (maxPageCount != -1 && pageCount > maxPageCount) {
 			pageCount = maxPageCount;
 		}
+
 		// 2페이지부턴 비동기로 조회
-		List<CompletableFuture<CompanySyncResult>> futures = new ArrayList<>();
+		List<CompletableFuture<CompanySyncResult>> futures = new ArrayList<>(pageCount - 1);
 		for (int pageNum = 2; pageNum <= pageCount; pageNum++) {
 			int targetPage = pageNum;
 			CompletableFuture<CompanySyncResult> future = CompletableFuture.supplyAsync(() -> {
@@ -82,23 +92,32 @@ public class CompanySyncBatchService {
 					BusanPublicDataResponse response = publicDataClient.getFamilyLoveCardInfo(targetPage, pageSize);
 					return getUpdatedCompanies(response.body().items());
 				} catch (Exception e) {
-					log.error("Failed to process page [{}]. Skipping this page", targetPage, e);
-					return CompanySyncResult.empty();
+					log.warn("Failed to process page [{}]. Skipping this page", targetPage);
+					return CompanySyncResult.failed();
 				}
 			}, asyncTaskExecutor);
 			futures.add(future);
 		}
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-		futures.forEach(future -> addResults(savedCompanies, pubDataTaxIds, future.join()));
+		boolean failedPagePresent = false;
+		for (CompletableFuture<CompanySyncResult> future : futures) {
+			CompanySyncResult result = future.join();
+			if (!result.isSuccessful()) {
+				failedPagePresent = true;
+				continue;
+			}
+			addResults(savedCompanies, pubDataTaxIds, result);
+		}
 		if (!savedCompanies.isEmpty()) {
 			companyRepository.saveAll(savedCompanies);
+		}
+		if (failedPagePresent) {
+			return;
 		}
 		List<Company> deletedCompanies = companyRepository.findAllByTaxIdNotIn(pubDataTaxIds);
 		if (!deletedCompanies.isEmpty()) {
 			companyRepository.deleteAll(deletedCompanies);
 		}
-		long endTime = System.currentTimeMillis();
-		log.info("== Company info update completed. Duration: {}ms ==", endTime - beginTime);
 	}
 
 	private void addResults(List<Company> savedCompanies, Set<Long> pubDataTaxIds, CompanySyncResult result) {
@@ -115,7 +134,7 @@ public class CompanySyncBatchService {
 	 * 이 리스트와 셋을 포함하는 객체를 반환한다.
 	 *
 	 * @param pubData 공공데이터 업체 정보
-	 * @return 기존 업체 엔티티 중 <code>pubData</code>의 내용과 다른 것의 리스트
+	 * @return 리스트와 셋을 포함하는 객체
 	 */
 	private CompanySyncResult getUpdatedCompanies(BusanPublicDataResponse.Body.Item[] pubData) {
 		List<Company> oldCompanies = companyRepository.findAllById(
@@ -132,83 +151,45 @@ public class CompanySyncBatchService {
 			Company oldCompany = oldCompanyMap.remove(taxId);
 			// 아예 새 업체인 경우
 			if (oldCompany == null) {
-				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
-				Company company = combine(item, coordinates);
+				Company company = item.toCompany();
+				company.updateCoordinatesUpdateRequired(true);
 				savedCompanies.add(company);
 				continue;
 			}
-			// 기존 업체인 경우
-			// 주소 제외 다른 정보가 바뀐 경우
-			boolean changed = false;
-			if (isUpdated(item, oldCompany)) {
-				changed = true;
-				oldCompany.updateWithoutAddressCoordinates(
-						item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
-						item.cpSidate(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
-						item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
+			if (!requiresUpdate(item, oldCompany)) {
+				continue;
 			}
-			// 주소가 바뀐 경우
-			if (!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress())) {
-				changed = true;
-				AddressToCoordinatesConversionResponse coordinates = fetchCoordinatesAsync(item);
-				updateCoordinatesIfExists(oldCompany, coordinates);
-			}
-			if (changed) {
-				savedCompanies.add(oldCompany);
-			}
+			oldCompany.updateCoordinatesUpdateRequired(!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress()));
+			oldCompany.updateWithoutCoordinates(
+					item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
+					item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
+					item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
+			savedCompanies.add(oldCompany);
 		}
-		return new CompanySyncResult(savedCompanies, pubDataTaxIds);
+		return CompanySyncResult.successful(savedCompanies, pubDataTaxIds);
 	}
 
-	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(BusanPublicDataResponse.Body.Item item) {
-		CompletableFuture<AddressToCoordinatesConversionResponse> future = CompletableFuture.supplyAsync(() -> {
-			var response = kakaoLocalClient.convertAddressToCoordinates(item.cpAddr());
-			// TODO 좌표로 변환 못 한 경우 다른 방법으로 재시도
-			return response;
-		}, asyncTaskExecutor);
-		return future.join();
-	}
-
-	private Company combine(BusanPublicDataResponse.Body.Item item, AddressToCoordinatesConversionResponse response) {
-		Company company = Company.builder()
-				.taxId(Long.valueOf(item.cpSanum()))
-				.name(item.cpCompname())
-				.homepageUrl(item.cpHome())
-				.category(item.cpClass())
-				.gu(item.cpHgu())
-				.ceoName(item.cpCeoname())
-				.beginDate(item.cpSidate())
-				.sourceAddress(item.cpAddr())
-				// TODO 전처리된 주소
-				// .normalizedAddress("")
-				.tel(item.cpTel())
-				.email(item.cpEmail())
-				.emailFlag(item.cpEmailflag())
-				.description(item.cpInfo())
-				.benefit(item.cpWoo())
-				.usageStatus(item.cpState())
-				.img(item.cpImg())
-				.webFlag(item.cpWebflag())
-				.build();
-		updateCoordinatesIfExists(company, response);
-		return company;
+	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(String address) {
+		var response = kakaoLocalClient.convertAddressToCoordinates(address);
+		// TODO 좌표로 변환 못 한 경우 다른 방법으로 재시도
+		return response;
 	}
 
 	/**
-	 * 기존 업체 정보 중 주소를 제외한 나머지가 바뀌었는지를 반환한다.
+	 * 업체 엔티티가 갱신되어야 하는지를 반환한다.
 	 *
 	 * @param item 공공데이터에서 가져온 업체 정보
 	 * @param oldCompany <code>item</code>과 사업자번호가 같은 업체 엔티티
-	 * @return 주소를 제외한 업체 정보가 바뀌었는지
+	 * @return 업체 엔티티가 갱신되어야 하는지
 	 */
-	private boolean isUpdated(BusanPublicDataResponse.Body.Item item, Company oldCompany) {
-		return oldCompany == null
-				|| !Objects.equals(item.cpCompname(), oldCompany.getName())
+	private boolean requiresUpdate(BusanPublicDataResponse.Body.Item item, Company oldCompany) {
+		return !Objects.equals(item.cpCompname(), oldCompany.getName())
 				|| !Objects.equals(item.cpHome(), oldCompany.getHomepageUrl())
 				|| !Objects.equals(item.cpClass(), oldCompany.getCategory())
 				|| !Objects.equals(item.cpHgu(), oldCompany.getGu())
 				|| !Objects.equals(item.cpCeoname(), oldCompany.getCeoName())
 				|| !Objects.equals(item.cpSidate(), oldCompany.getBeginDate())
+				|| !Objects.equals(item.cpAddr(), oldCompany.getSourceAddress())
 				|| !Objects.equals(item.cpTel(), oldCompany.getTel())
 				|| !Objects.equals(item.cpEmail(), oldCompany.getEmail())
 				|| !Objects.equals(item.cpEmailflag(), oldCompany.getEmailFlag())
@@ -217,6 +198,21 @@ public class CompanySyncBatchService {
 				|| !Objects.equals(item.cpState(), oldCompany.getUsageStatus())
 				|| !Objects.equals(item.cpImg(), oldCompany.getImg())
 				|| !Objects.equals(item.cpWebflag(), oldCompany.getWebFlag());
+	}
+
+	private void updateCoordinatesWhereRequired() {
+		List<Company> companies = companyRepository.findAllByCoordinatesUpdateRequired(true);
+		List<CompletableFuture<Void>> futures = new ArrayList<>(companies.size());
+		companies.forEach(company -> {
+			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+				AddressToCoordinatesConversionResponse response = fetchCoordinatesAsync(company.getSourceAddress());
+				updateCoordinatesIfExists(company, response);
+			}, asyncTaskExecutor);
+			futures.add(future);
+		});
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+		companies.forEach(company -> company.updateCoordinatesUpdateRequired(false));
+		companyRepository.saveAll(companies);
 	}
 
 	private void updateCoordinatesIfExists(Company company, AddressToCoordinatesConversionResponse response) {
@@ -235,16 +231,22 @@ public class CompanySyncBatchService {
 	@Getter
 	private static class CompanySyncResult {
 
+		private final boolean successful;
 		private final List<Company> savedCompanies;
 		private final Set<Long> pubDataTaxIds;
 
-		public CompanySyncResult(List<Company> savedCompanies, Set<Long> pubDataTaxIds) {
+		private CompanySyncResult(boolean successful, List<Company> savedCompanies, Set<Long> pubDataTaxIds) {
+			this.successful = successful;
 			this.savedCompanies = savedCompanies;
 			this.pubDataTaxIds = pubDataTaxIds;
 		}
 
-		public static CompanySyncResult empty() {
-			return new CompanySyncResult(Collections.emptyList(), Collections.emptySet());
+		public static CompanySyncResult successful(List<Company> savedCompanies, Set<Long> pubDataTaxIds) {
+			return new CompanySyncResult(true, savedCompanies, pubDataTaxIds);
+		}
+
+		public static CompanySyncResult failed() {
+			return new CompanySyncResult(false, Collections.emptyList(), Collections.emptySet());
 		}
 
 	}

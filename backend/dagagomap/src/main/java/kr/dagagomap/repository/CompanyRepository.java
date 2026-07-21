@@ -11,4 +11,6 @@ public interface CompanyRepository extends JpaRepository<Company, Long>, Company
 
 	List<Company> findAllByTaxIdNotIn(Collection<Long> taxIds);
 
+	List<Company> findAllByCoordinatesUpdateRequired(Boolean coordinatesUpdateRequired);
+
 }
