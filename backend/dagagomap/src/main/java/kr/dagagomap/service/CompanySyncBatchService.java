@@ -222,12 +222,14 @@ public class CompanySyncBatchService {
 	private void updateCoordinatesIfExists(Company company, AddressToCoordinatesConversionResponse response) {
 		if (response == null) {
 			log.warn("Company [{}] has no coordinate data due to API failure.", company.getName());
-		} else {
-			AddressToCoordinatesConversionResponse.Document[] documents = response.documents();
-			if (documents != null && documents.length > 0) {
-				company.updateCoordinates(Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
-			}
+			return;
 		}
+		AddressToCoordinatesConversionResponse.Document[] documents = response.documents();
+		if (documents == null || documents.length == 0) {
+			log.warn("Company [{}] has no coordinate data due to API failure.", company.getName());
+			return;
+		}
+		company.updateCoordinates(Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
 	}
 
 	@Getter
