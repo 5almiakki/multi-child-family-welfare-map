@@ -1,7 +1,10 @@
 <script setup>
 import SearchInput from "@/components/views/home/SearchInput.vue";
 import SearchResult from "@/components/views/home/SearchResult.vue";
+import { useSearchResultStore } from "@/stores/searchResult";
 import { ref, onMounted, onUnmounted } from "vue";
+
+const searchResultStore = useSearchResultStore();
 
 const { VITE_KAKAO_JAVASCRIPT_KEY } = import.meta.env;
 const mapContainer = ref(null);
@@ -40,8 +43,18 @@ const createMap = () => {
 
 const isDrawerOpen = ref(false);
 
-const handleSerach = () => {
+const handleSearch = ({ keyword, categories }) => {
+  if (!mapInstance) {
+    return;
+  }
+  const center = mapInstance.getCenter();
   isDrawerOpen.value = true;
+  searchResultStore.search({
+    name: keyword || undefined,
+    categories: categories.length ? categories : undefined,
+    latitude: center.getLat(),
+    longitude: center.getLng()
+  });
 };
 
 onMounted(() => {
@@ -66,7 +79,7 @@ onUnmounted(() => {
 <template>
   <div class="map-wrapper">
     <div ref="mapContainer" class="map-container"></div>
-    <SearchInput @on-search="handleSerach" />
+    <SearchInput @on-search="handleSearch" />
     <SearchResult v-model="isDrawerOpen" />
   </div>
 </template>

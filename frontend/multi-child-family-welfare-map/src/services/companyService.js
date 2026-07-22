@@ -35,9 +35,10 @@ import api from "@/services/api";
 /**
  * 조건에 맞는 업체 목록을 조회한다.
  * @param {CompanySearchParams} params
+ * @param {AbortSignal} [signal] 요청 취소용 signal
  * @returns {Promise<Company[]>}
  */
-export const searchCompanies = async params => {
-  const { data } = await api.get("/api/v1/companies", { params });
+export const searchCompanies = async (params, signal) => {
+  const { data } = await api.get("/api/v1/companies", { params, signal });
   return data;
 };

@@ -1,21 +1,33 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import { useDebounceFn } from '@/composables/useDebounceFn';
+import { COMPANY_CATEGORIES } from '@/constants/category';
+import { SEARCH_DEBOUNCE_DELAY_MS } from '@/constants/search';
 
 const emit = defineEmits([
   "on-search"
 ]);
 
 const keyword = ref("");
-const categories = ref([
-  "금융기관", "문화시설", "체육시설", "유치원", "어린이집", "학원", "요식업등", "병의원", "한의원",
-  "이미용업", "세탁, 목욕업", "자동차", "사진관", "유통업체", "안경", "여행업", "숙박업", "기타",
-]);
+const categories = ref(COMPANY_CATEGORIES);
 const selectedCategories = ref([]);
 
 const emitSearch = () => {
-  let k = keyword.value.trim();
-  emit("on-search");
+  emit("on-search", {
+    keyword: keyword.value.trim(),
+    categories: selectedCategories.value
+  });
 };
+
+const { debounced: debouncedSearch, cancel: cancelDebouncedSearch } =
+  useDebounceFn(emitSearch, SEARCH_DEBOUNCE_DELAY_MS);
+
+const searchImmediately = () => {
+  cancelDebouncedSearch();
+  emitSearch();
+};
+
+watch(selectedCategories, searchImmediately, { deep: true });
 </script>
 
 <template>
@@ -25,10 +37,10 @@ const emitSearch = () => {
         <BFormInput
           v-model="keyword"
           placeholder="검색어를 입력하세요."
-          @keyup.enter="emitSearch"
+          @keyup.enter="searchImmediately"
         />
         <template #append>
-          <BButton variant="success" @click="emitSearch">검색</BButton>
+          <BButton variant="success" @click="searchImmediately">검색</BButton>
         </template>
       </BInputGroup>
       <div class="d-flex flex-nowrap overflow-auto pb-2 custom-scrollbar button-group">
