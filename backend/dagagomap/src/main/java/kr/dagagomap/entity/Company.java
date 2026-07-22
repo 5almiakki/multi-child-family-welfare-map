@@ -30,6 +30,7 @@ public class Company {
 	private String usageStatus; // 사용여부
 	private String img; // 첨부파일
 	private String webFlag; // 승인여부
+	private Boolean coordinatesUpdateRequired;
 	private Double latitude; // 위도
 	private Double longitude; // 경도
 
@@ -62,16 +63,17 @@ public class Company {
 		this.longitude = longitude;
 	}
 
-	public void updateWithoutAddressCoordinates(
-			String name, String homepageUrl, String category, String gu, String ceoName, String beginDate, String tel,
-			String email, String emailFlag, String description, String benefit, String usageStatus, String img,
-			String webFlag) {
+	public void updateWithoutCoordinates(
+			String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
+			String sourceAddress, String tel, String email, String emailFlag, String description, String benefit,
+			String usageStatus, String img, String webFlag) {
 		this.name = name;
 		this.homepageUrl = homepageUrl;
 		this.category = category;
 		this.gu = gu;
 		this.ceoName = ceoName;
 		this.beginDate = beginDate;
+		this.sourceAddress = sourceAddress;
 		this.tel = tel;
 		this.email = email;
 		this.emailFlag = emailFlag;
@@ -81,4 +83,9 @@ public class Company {
 		this.img = img;
 		this.webFlag = webFlag;
 	}
+
+	public void updateCoordinatesUpdateRequired(Boolean coordinatesUpdateRequired) {
+		this.coordinatesUpdateRequired = coordinatesUpdateRequired;
+	}
+
 }

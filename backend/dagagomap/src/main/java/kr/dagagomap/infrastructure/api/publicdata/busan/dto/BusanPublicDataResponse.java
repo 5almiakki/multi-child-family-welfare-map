@@ -1,6 +1,7 @@
 package kr.dagagomap.infrastructure.api.publicdata.busan.dto;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
+import kr.dagagomap.entity.Company;
 
 /**
  * 참여업체명, 우대 내용 등 부산광역시 가족사랑카드참여업체 현황 조회 정보
@@ -101,7 +102,30 @@ public record BusanPublicDataResponse(
 				String cpImg,
 				/* 승인여부 */
 				String cpWebflag
-		) {}
+		) {
+
+			public Company toCompany() {
+				return Company.builder()
+						.taxId(Long.valueOf(cpSanum))
+						.name(cpCompname)
+						.homepageUrl(cpHome)
+						.category(cpClass)
+						.gu(cpHgu)
+						.ceoName(cpCeoname)
+						.beginDate(cpSidate)
+						.sourceAddress(cpAddr)
+						.tel(cpTel)
+						.email(cpEmail)
+						.emailFlag(cpEmailflag)
+						.description(cpInfo)
+						.benefit(cpWoo)
+						.usageStatus(cpState)
+						.img(cpImg)
+						.webFlag(cpWebflag)
+						.build();
+			}
+
+		}
 
 	}
 
