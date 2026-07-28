@@ -1,6 +1,8 @@
 package kr.dagagomap.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberTemplate;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.dagagomap.entity.Company;
 import kr.dagagomap.entity.QCompany;
@@ -18,13 +20,15 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 	private final QCompany company = QCompany.company;
 
 	@Override
-	public List<Company> retrieveCompanies(String name, Set<String> gus, Set<String> categories) {
+	public List<Company> retrieveCompanies(
+			String name, Set<String> gus, Set<String> categories, double latitude, double longitude) {
 		return queryFactory.selectFrom(company)
-				.where(where(name, gus, categories))
+				.where(contains(name, gus, categories))
+				.orderBy(distance(latitude, longitude).asc().nullsLast())
 				.fetch();
 	}
 
-	private BooleanBuilder where(
+	private BooleanBuilder contains(
 			String name, Set<String> gus, Set<String> categories) {
 		BooleanBuilder resultPredicate = new BooleanBuilder();
 		if (name != null) {
@@ -37,6 +41,15 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 			resultPredicate.and(company.category.in(categories));
 		}
 		return resultPredicate;
+	}
+
+	private NumberTemplate<Double> distance(double latitude, double longitude) {
+		String template = "6371 * acos("
+				+ "cos(radians({0})) * cos(radians({1})) * "
+				+ "cos(radians({2}) - radians({3})) + "
+				+ "sin(radians({0})) * sin(radians({1})))";
+		return Expressions.numberTemplate(
+				Double.class, template, latitude, company.latitude, longitude, company.longitude);
 	}
 
 }
