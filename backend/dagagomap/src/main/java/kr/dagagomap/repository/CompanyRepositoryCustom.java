@@ -7,6 +7,6 @@ import java.util.Set;
 
 public interface CompanyRepositoryCustom {
 
-	List<Company> retrieveCompanies(String name, Set<String> gus, Set<String> categories);
+	List<Company> retrieveCompanies(String name, Set<String> gus, Set<String> categories, double latitude, double longitude);
 
 }
