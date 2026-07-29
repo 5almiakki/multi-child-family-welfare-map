@@ -1,7 +1,10 @@
 <script setup>
 import SearchInput from "@/components/views/home/SearchInput.vue";
 import SearchResult from "@/components/views/home/SearchResult.vue";
-import { ref, onMounted, onUnmounted } from "vue";
+import { useSearchResultStore } from "@/stores/searchResult";
+import { ref, onMounted, onUnmounted, watch } from "vue";
+
+const searchResultStore = useSearchResultStore();
 
 const { VITE_KAKAO_JAVASCRIPT_KEY } = import.meta.env;
 const mapContainer = ref(null);
@@ -15,7 +18,7 @@ const loadKakaoMapScript = () => {
       return;
     }
     const script = document.createElement("script");
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${VITE_KAKAO_JAVASCRIPT_KEY}&autoload=false`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${VITE_KAKAO_JAVASCRIPT_KEY}&autoload=false&libraries=clusterer`;
     script.onload = () => {
       scriptLoaded = true;
       resolve();
@@ -27,6 +30,8 @@ const loadKakaoMapScript = () => {
   });
 };
 
+let clusterer = null;
+
 const createMap = () => {
   if (!window.kakao || !mapContainer.value) {
     return;
@@ -36,12 +41,59 @@ const createMap = () => {
     level: 3
   };
   mapInstance = new window.kakao.maps.Map(mapContainer.value, options);
+  clusterer = new window.kakao.maps.MarkerClusterer({
+    map: mapInstance,
+    averageCenter: true,
+    minLevel: 6
+  });
 };
+
+const clearMarkers = () => {
+  clusterer?.clear();
+};
+
+const renderMarkers = companies => {
+  if (!mapInstance || !clusterer) {
+    return;
+  }
+  clearMarkers();
+  const validCompanies = companies.filter(
+    company => company.latitude != null && company.longitude != null
+  );
+  const markers = validCompanies.map(
+    company =>
+      new window.kakao.maps.Marker({
+        position: new window.kakao.maps.LatLng(company.latitude, company.longitude)
+      })
+  );
+  clusterer.addMarkers(markers);
+
+  if (validCompanies.length > 0) {
+    const firstCompany = validCompanies[0];
+    const moveLatLng = new window.kakao.maps.LatLng(
+      firstCompany.latitude,
+      firstCompany.longitude
+    );
+    mapInstance.setCenter(moveLatLng);
+  }
+};
+
+watch(() => searchResultStore.searchResults, renderMarkers);
 
 const isDrawerOpen = ref(false);
 
-const handleSerach = () => {
+const handleSearch = ({ keyword, categories }) => {
+  if (!mapInstance) {
+    return;
+  }
+  const center = mapInstance.getCenter();
   isDrawerOpen.value = true;
+  searchResultStore.search({
+    name: keyword || undefined,
+    categories: categories.length ? categories : undefined,
+    latitude: center.getLat(),
+    longitude: center.getLng()
+  });
 };
 
 onMounted(() => {
@@ -57,6 +109,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  clearMarkers();
+  clusterer = null;
   if (mapInstance) {
     mapInstance = null;
   }
@@ -66,7 +120,7 @@ onUnmounted(() => {
 <template>
   <div class="map-wrapper">
     <div ref="mapContainer" class="map-container"></div>
-    <SearchInput @on-search="handleSerach" />
+    <SearchInput @on-search="handleSearch" />
     <SearchResult v-model="isDrawerOpen" />
   </div>
 </template>

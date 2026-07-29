@@ -5,12 +5,12 @@ const props = defineProps({
 </script>
 
 <template>
-  <h5>{{ searchResultItem.title }}</h5>
-  {{ searchResultItem.url }}
+  <h5>{{ searchResultItem.name }}</h5>
+  {{ searchResultItem.homepageUrl }}
   <br>
-  {{ searchResultItem.address }}
+  {{ searchResultItem.normalizedAddress }}
   <br>
-  {{ searchResultItem.telNum }}
+  {{ searchResultItem.tel }}
   <br>
   {{ searchResultItem.description }}
   <br>
