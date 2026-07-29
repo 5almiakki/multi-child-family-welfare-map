@@ -20,4 +20,5 @@ public class ErrorResponseDto {
 		this.message = message;
 		this.path = path;
 	}
+
 }
