@@ -57,12 +57,25 @@ const renderMarkers = companies => {
     return;
   }
   clearMarkers();
-  const markers = companies
-    .filter(company => company.latitude != null && company.longitude != null)
-    .map(company => new window.kakao.maps.Marker({
-      position: new window.kakao.maps.LatLng(company.latitude, company.longitude)
-    }));
+  const validCompanies = companies.filter(
+    company => company.latitude != null && company.longitude != null
+  );
+  const markers = validCompanies.map(
+    company =>
+      new window.kakao.maps.Marker({
+        position: new window.kakao.maps.LatLng(company.latitude, company.longitude)
+      })
+  );
   clusterer.addMarkers(markers);
+
+  if (validCompanies.length > 0) {
+    const firstCompany = validCompanies[0];
+    const moveLatLng = new window.kakao.maps.LatLng(
+      firstCompany.latitude,
+      firstCompany.longitude
+    );
+    mapInstance.setCenter(moveLatLng);
+  }
 };
 
 watch(() => searchResultStore.searchResults, renderMarkers);
