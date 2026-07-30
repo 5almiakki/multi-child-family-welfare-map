@@ -29,7 +29,9 @@ jobs:
         cat << 'EOF' > src/main/resources/application-secret.yml
         ${{ secrets.BACKEND_DEV_SECRET }}
         EOF
-    
+
+        ls -al src/main/resources
+
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
