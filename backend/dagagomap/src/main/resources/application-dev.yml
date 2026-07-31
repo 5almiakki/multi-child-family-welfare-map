@@ -2,3 +2,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+
+custom:
+  scheduler:
+    company-update:
+      cron: 0 0 3 * * *
