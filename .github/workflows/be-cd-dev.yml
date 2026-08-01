@@ -1,0 +1,28 @@
+name: Backend CD (dev)
+
+on:
+  push:
+    branches: [ "develop" ]
+
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    defaults:
+      run:
+        working-directory: backend/dagagomap
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Docker login
+      run: ${{ secrets.DOCKER_PW }} | docker login --username ${{ secrets.DOCKER_ID }} --password-stdin
+
+    - name: Build the Docker image
+      run: docker build --tag 5almiakki/dagagayo-be:$(date +%s) .
+
+    - name: Push the Docker image
+      run: docker image push 5almiakki/dagagayo-be:$(date +%s)
