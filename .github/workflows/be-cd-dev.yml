@@ -75,7 +75,11 @@ jobs:
     - name: Deploy
       run: |
         ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} << 'EOF'
-          docker container rm dagagayo-be || true
-          docker pull 5almiakki/dagagayo-be:${{ github.sha }}
-          docker run -d --name dagagayo-be -p ${{ secrets.BACKEND_DEV_PORT }}:${{ secrets.BACKEND_DEV_PORT }} dagagayo-be
+          docker container rm -f dagagayo-be || true
+          docker pull 5almiakki/dagagayo-be:${{ github.sha }} &&
+          docker run -d \
+            --name dagagayo-be \
+            -p ${{ secrets.BACKEND_DEV_PORT }}:${{ secrets.BACKEND_DEV_PORT }} \
+            5almiakki/dagagayo-be:${{ github.sha }}
+          docker image prune
         EOF
