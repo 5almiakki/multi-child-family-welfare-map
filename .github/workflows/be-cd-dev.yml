@@ -64,6 +64,14 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+    - name: Add known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan \
+          -p ${{ secrets.SSH_PORT }} \
+          -H ${{ secrets.SERVER_HOST }} \
+          >> ~/.ssh/known_hosts
+
     - name: Deploy
       run: |
         ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} << 'EOF'
