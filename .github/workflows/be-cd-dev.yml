@@ -19,7 +19,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Docker login
-      run: \"${{ secrets.DOCKER_PW }}\" | docker login --username ${{ secrets.DOCKER_ID }} --password-stdin
+      run: \"${{ secrets.DOCKER_TOKEN }}\" | docker login --username ${{ secrets.DOCKER_ID }} --password-stdin
 
     - name: Build the Docker image
       run: docker build --tag 5almiakki/dagagayo-be:$(date +%s) .
