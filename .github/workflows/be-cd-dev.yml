@@ -48,7 +48,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Build the Docker image
-      run: docker build --tag 5almiakki/dagagayo-be:$(date +%s) .
+      run: docker build --tag 5almiakki/dagagayo-be:${{ github.sha }} .
 
     - name: Push the Docker image
-      run: docker image push 5almiakki/dagagayo-be:$(date +%s)
+      run: docker image push 5almiakki/dagagayo-be:${{ github.sha }}
