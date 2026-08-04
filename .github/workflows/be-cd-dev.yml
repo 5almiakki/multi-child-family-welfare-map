@@ -83,5 +83,5 @@ jobs:
             -p ${{ secrets.BACKEND_DEV_PORT }}:${{ secrets.BACKEND_DEV_PORT }} \
             -e "USE_PROFILE=dev,secret" \
             5almiakki/dagagayo-be:${{ github.sha }}
-          docker image prune -af
+          docker image prune
         EOF
