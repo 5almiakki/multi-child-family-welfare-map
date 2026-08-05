@@ -39,7 +39,8 @@ public class BusanPublicDataClient {
 		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo"
 				+ "?ServiceKey=" + publicDataServicekey
 				+ "&pageNo=" + pageNo
-				+ "&numOfRows=" + numOfRows;
+				+ "&numOfRows=" + numOfRows
+				+ "&resultType=xml";
 		var response = restClient.get()
 				.uri(uri)
 				.retrieve()
