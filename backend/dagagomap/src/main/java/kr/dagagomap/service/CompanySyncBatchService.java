@@ -72,9 +72,9 @@ public class CompanySyncBatchService {
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
 		List<Company> savedCompanies = new ArrayList<>();
-		Set<Long> pubDataTaxIds = new HashSet<>();
+		Set<List<String>> pubDataNameAddressPairs = new HashSet<>();
 		// 첫 페이지 내 업체 정보 저장
-		addResults(savedCompanies, pubDataTaxIds, getUpdatedCompanies(res.body().items()));
+		addResults(savedCompanies, pubDataNameAddressPairs, getUpdatedCompanies(res.body().items()));
 
 		int pageCount = Math.ceilDiv(companyCount, pageSize);
 		// 페이지 조회 상한 별도 지정이 없으면 위에서 얻은 전체 업체 모두 조회
@@ -106,7 +106,7 @@ public class CompanySyncBatchService {
 				failedPagePresent = true;
 				continue;
 			}
-			addResults(savedCompanies, pubDataTaxIds, result);
+			addResults(savedCompanies, pubDataNameAddressPairs, result);
 		}
 		if (!savedCompanies.isEmpty()) {
 			companyRepository.saveAll(savedCompanies);
@@ -114,15 +114,15 @@ public class CompanySyncBatchService {
 		if (failedPagePresent) {
 			return;
 		}
-		List<Company> deletedCompanies = companyRepository.findAllByTaxIdNotIn(pubDataTaxIds);
+		List<Company> deletedCompanies = companyRepository.findAllNotMatchingNameAndAddress(pubDataNameAddressPairs);
 		if (!deletedCompanies.isEmpty()) {
 			companyRepository.deleteAll(deletedCompanies);
 		}
 	}
 
-	private void addResults(List<Company> savedCompanies, Set<Long> pubDataTaxIds, CompanySyncResult result) {
+	private void addResults(List<Company> savedCompanies, Set<List<String>> pubDataNameAddressPairs, CompanySyncResult result) {
 		savedCompanies.addAll(result.getSavedCompanies());
-		pubDataTaxIds.addAll(result.getPubDataTaxIds());
+		pubDataNameAddressPairs.addAll(result.getPubDataNameAddressPairs());
 	}
 
 	/**
@@ -137,18 +137,19 @@ public class CompanySyncBatchService {
 	 * @return 리스트와 셋을 포함하는 객체
 	 */
 	private CompanySyncResult getUpdatedCompanies(BusanPublicDataResponse.Body.Item[] pubData) {
-		List<Company> oldCompanies = companyRepository.findAllById(
-				Arrays.stream(pubData)
-						.map(item -> Long.valueOf(item.cpSanum()))
-						.toList());
-		Map<Long, Company> oldCompanyMap = oldCompanies.stream()
-				.collect(Collectors.toMap(Company::getTaxId, c -> c));
+		List<List<String>> nameAddressPairs = Arrays.stream(pubData)
+				.map(item -> List.of(item.cpCompname(), item.cpAddr()))
+				.toList();
+		List<Company> oldCompanies = companyRepository.findAllMatchingNameAndAddress(nameAddressPairs);
+		Map<List<String>, Company> oldCompanyMap = oldCompanies.stream()
+				.collect(Collectors.toMap(
+						c -> List.of(c.getName(), c.getSourceAddress()), c -> c));
 		List<Company> savedCompanies = new ArrayList<>();
-		Set<Long> pubDataTaxIds = new HashSet<>();
+		Set<List<String>> pubDataNameAddressPairs = new HashSet<>();
 		for (var item : pubData) {
-			Long taxId = Long.valueOf(item.cpSanum());
-			pubDataTaxIds.add(taxId);
-			Company oldCompany = oldCompanyMap.remove(taxId);
+			List<String> nameAddressPair = List.of(item.cpCompname(), item.cpAddr());
+			pubDataNameAddressPairs.add(nameAddressPair);
+			Company oldCompany = oldCompanyMap.remove(nameAddressPair);
 			// 아예 새 업체인 경우
 			if (oldCompany == null) {
 				Company company = item.toCompany();
@@ -166,7 +167,7 @@ public class CompanySyncBatchService {
 					item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
 			savedCompanies.add(oldCompany);
 		}
-		return CompanySyncResult.successful(savedCompanies, pubDataTaxIds);
+		return CompanySyncResult.successful(savedCompanies, pubDataNameAddressPairs);
 	}
 
 	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(String address) {
@@ -233,16 +234,16 @@ public class CompanySyncBatchService {
 
 		private final boolean successful;
 		private final List<Company> savedCompanies;
-		private final Set<Long> pubDataTaxIds;
+		private final Set<List<String>> pubDataNameAddressPairs;
 
-		private CompanySyncResult(boolean successful, List<Company> savedCompanies, Set<Long> pubDataTaxIds) {
+		private CompanySyncResult(boolean successful, List<Company> savedCompanies, Set<List<String>> pubDataNameAddressPairs) {
 			this.successful = successful;
 			this.savedCompanies = savedCompanies;
-			this.pubDataTaxIds = pubDataTaxIds;
+			this.pubDataNameAddressPairs = pubDataNameAddressPairs;
 		}
 
-		public static CompanySyncResult successful(List<Company> savedCompanies, Set<Long> pubDataTaxIds) {
-			return new CompanySyncResult(true, savedCompanies, pubDataTaxIds);
+		public static CompanySyncResult successful(List<Company> savedCompanies, Set<List<String>> pubDataNameAddressPairs) {
+			return new CompanySyncResult(true, savedCompanies, pubDataNameAddressPairs);
 		}
 
 		public static CompanySyncResult failed() {

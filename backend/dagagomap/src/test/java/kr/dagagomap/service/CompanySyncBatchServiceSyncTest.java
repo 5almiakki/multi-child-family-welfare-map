@@ -13,8 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.util.List;
-
 import static kr.dagagomap.support.PublicDataTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -57,26 +55,25 @@ class CompanySyncBatchServiceSyncTest {
 
 		companySyncBatchService.syncCompanies();
 
-		List<Company> companies = companyRepository.findAll();
-		assertThat(companies).hasSize(1);
-		assertThat(companies.get(0).getTaxId()).isEqualTo(1010101010L);
-		assertThat(companies.get(0).getName()).isEqualTo("신규카페");
-		assertThat(companies.get(0).getLatitude()).isEqualTo(35.1796);
-		assertThat(companies.get(0).getLongitude()).isEqualTo(129.0756);
+		Company company = companyRepository.findByNameAndSourceAddress("신규카페", "부산 해운대구 우동 1").orElseThrow();
+		assertThat(company.getTaxId()).isEqualTo(1010101010L);
+		assertThat(company.getName()).isEqualTo("신규카페");
+		assertThat(company.getLatitude()).isEqualTo(35.1796);
+		assertThat(company.getLongitude()).isEqualTo(129.0756);
 		verify(kakaoLocalClient).convertAddressToCoordinates("부산 해운대구 우동 1");
 	}
 
 	@Test
-	@DisplayName("기존 업체의 주소를 제외하고 변경된 정보를 반영한다")
+	@DisplayName("기존 업체의 주소를 제외하고 변경된 정보(전화번호 등)를 반영한다")
 	void updatesChangedCompanyFields() {
-		companyRepository.save(existingCompany(2020202020L, "구이름", "부산 해운대구 좌동 10"));
-		BusanPublicDataResponse.Body.Item updatedItem = item("2020202020", "신이름", "부산 해운대구 좌동 10");
+		companyRepository.save(existingCompany(2020202020L, "변경업체", "부산 해운대구 좌동 10"));
+		BusanPublicDataResponse.Body.Item updatedItem = item("2020202020", "변경업체", "부산 해운대구 좌동 10");
 		stubSinglePage(updatedItem);
 
 		companySyncBatchService.syncCompanies();
 
-		Company company = companyRepository.findById(2020202020L).orElseThrow();
-		assertThat(company.getName()).isEqualTo("신이름");
+		Company company = companyRepository.findByNameAndSourceAddress("변경업체", "부산 해운대구 좌동 10").orElseThrow();
+		assertThat(company.getTel()).isEqualTo("051-000-0000");
 		verify(kakaoLocalClient, never()).convertAddressToCoordinates(anyString());
 	}
 
@@ -94,7 +91,8 @@ class CompanySyncBatchServiceSyncTest {
 
 		companySyncBatchService.syncCompanies();
 
-		Company updated = companyRepository.findById(3030303030L).orElseThrow();
+		assertThat(companyRepository.findByNameAndSourceAddress("좌표갱신상점", "부산 해운대구 중동 1")).isEmpty();
+		Company updated = companyRepository.findByNameAndSourceAddress("좌표갱신상점", "부산 수영구 광안동 2").orElseThrow();
 		assertThat(updated.getLatitude()).isEqualTo(35.1532);
 		assertThat(updated.getLongitude()).isEqualTo(129.1186);
 		verify(kakaoLocalClient).convertAddressToCoordinates("부산 수영구 광안동 2");
@@ -109,7 +107,7 @@ class CompanySyncBatchServiceSyncTest {
 
 		companySyncBatchService.syncCompanies();
 
-		Company company = companyRepository.findById(4040404040L).orElseThrow();
+		Company company = companyRepository.findByNameAndSourceAddress("변경없음", "부산 해운대구 우동 3").orElseThrow();
 		assertThat(company.getHomepageUrl()).isEqualTo(sameItem.cpHome());
 		verify(kakaoLocalClient, never()).convertAddressToCoordinates(anyString());
 	}
@@ -123,8 +121,8 @@ class CompanySyncBatchServiceSyncTest {
 
 		companySyncBatchService.syncCompanies();
 
-		assertThat(companyRepository.findById(6060606060L)).isPresent();
-		assertThat(companyRepository.findById(5050505050L)).isEmpty();
+		assertThat(companyRepository.findByNameAndSourceAddress("유지대상", "부산 해운대구 우동 5")).isPresent();
+		assertThat(companyRepository.findByNameAndSourceAddress("삭제대상", "부산 해운대구 우동 4")).isEmpty();
 	}
 
 	@Test
@@ -143,8 +141,8 @@ class CompanySyncBatchServiceSyncTest {
 		companySyncBatchService.syncCompanies();
 
 		assertThat(companyRepository.findAll())
-				.extracting(Company::getTaxId)
-				.containsExactlyInAnyOrder(7070707070L, 8080808080L);
+				.extracting(Company::getName)
+				.containsExactlyInAnyOrder("1페이지업체", "2페이지업체");
 		verify(publicDataClient).getFamilyLoveCardInfo(1, 2);
 		verify(publicDataClient).getFamilyLoveCardInfo(2, 2);
 		verify(publicDataClient, never()).getFamilyLoveCardInfo(eq(3), anyInt());
@@ -163,8 +161,8 @@ class CompanySyncBatchServiceSyncTest {
 		companySyncBatchService.syncCompanies();
 
 		assertThat(companyRepository.findAll())
-				.extracting(Company::getTaxId)
-				.containsExactly(9090909090L);
+				.extracting(Company::getName)
+				.containsExactly("성공업체");
 	}
 
 	private void stubSinglePage(BusanPublicDataResponse.Body.Item item) {

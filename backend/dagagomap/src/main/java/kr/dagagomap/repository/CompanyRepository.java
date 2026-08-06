@@ -4,12 +4,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import kr.dagagomap.entity.Company;
 
-import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface CompanyRepository extends JpaRepository<Company, Long>, CompanyRepositoryCustom {
 
-	List<Company> findAllByTaxIdNotIn(Collection<Long> taxIds);
+	Optional<Company> findByNameAndSourceAddress(String name, String sourceAddress);
+
+	Optional<Company> findByTaxId(Long taxId);
 
 	List<Company> findAllByCoordinatesUpdateRequired(Boolean coordinatesUpdateRequired);
 

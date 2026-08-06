@@ -9,6 +9,7 @@ import kr.dagagomap.entity.QCompany;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -20,7 +21,7 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 	private final QCompany company = QCompany.company;
 
 	@Override
-	public List<Company> retrieveCompanies(
+	public List<Company> findCompanies(
 			String name, Set<String> gus, Set<String> categories, double latitude, double longitude) {
 		return queryFactory.selectFrom(company)
 				.where(contains(name, gus, categories))
@@ -50,6 +51,34 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 				+ "sin(radians({0})) * sin(radians({1})))";
 		return Expressions.numberTemplate(
 				Double.class, template, latitude, company.latitude, longitude, company.longitude);
+	}
+
+	@Override
+	public List<Company> findAllMatchingNameAndAddress(Iterable<List<String>> nameAddressPairs) {
+		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
+			return Collections.emptyList();
+		}
+		return queryFactory.selectFrom(company)
+				.where(matches(nameAddressPairs))
+				.fetch();
+	}
+
+	@Override
+	public List<Company> findAllNotMatchingNameAndAddress(Iterable<List<String>> nameAddressPairs) {
+		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
+			return queryFactory.selectFrom(company).fetch();
+		}
+		return queryFactory.selectFrom(company)
+				.where(matches(nameAddressPairs).not())
+				.fetch();
+	}
+
+	private BooleanBuilder matches(Iterable<List<String>> nameAddressPairs) {
+		BooleanBuilder predicate = new BooleanBuilder();
+		for (List<String> pair : nameAddressPairs) {
+			predicate.or(company.name.eq(pair.get(0)).and(company.sourceAddress.eq(pair.get(1))));
+		}
+		return predicate;
 	}
 
 }
