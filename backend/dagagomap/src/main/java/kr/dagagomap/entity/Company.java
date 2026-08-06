@@ -1,6 +1,8 @@
 package kr.dagagomap.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,6 +15,8 @@ import lombok.AccessLevel;
 public class Company {
 
 	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 	private Long taxId; // 사업자번호
 	private String name; // 참여업체명
 	private String homepageUrl; // URL
