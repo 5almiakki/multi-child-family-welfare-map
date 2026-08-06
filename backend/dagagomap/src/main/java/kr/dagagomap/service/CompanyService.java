@@ -19,7 +19,7 @@ public class CompanyService {
 	@Transactional(readOnly = true)
 	public List<CompanyRetrievalResponseDto> retrieveCompanies(
 			String name, Set<String> gus, Set<String> categories, double latitude, double longitude) {
-		List<Company> companies = companyRepository.retrieveCompanies(name, gus, categories, latitude, longitude);
+		List<Company> companies = companyRepository.findCompanies(name, gus, categories, latitude, longitude);
 		return companies.stream()
 				.map(CompanyRetrievalResponseDto::new)
 				.toList();
