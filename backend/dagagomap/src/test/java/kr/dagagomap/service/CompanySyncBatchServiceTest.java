@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 		"logging.level.kr.dagagomap.service.CompanySyncBatchService=DEBUG"
 })
 @ActiveProfiles("test")
-class CompanySyncBatchServiceSyncTest {
+class CompanySyncBatchServiceTest {
 
 	@Autowired
 	private CompanySyncBatchService companySyncBatchService;
