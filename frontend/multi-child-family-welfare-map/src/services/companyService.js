@@ -42,3 +42,18 @@ export const searchCompanies = async (params, signal) => {
   const { data } = await api.get("/api/v1/companies", { params, signal });
   return data;
 };
+
+/**
+ * 업체명 자동완성 목록을 조회한다.
+ * @param {string} keyword 검색어
+ * @param {number} [limit=10] 최대 결과 수
+ * @param {AbortSignal} [signal] 요청 취소용 signal
+ * @returns {Promise<string[]>}
+ */
+export const autocompleteCompanyNames = async (keyword, limit = 10, signal) => {
+  const { data } = await api.get("/api/v1/companies/autocomplete", {
+    params: { keyword, limit },
+    signal
+  });
+  return data;
+};
