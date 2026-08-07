@@ -73,6 +73,19 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 				.fetch();
 	}
 
+	@Override
+	public List<String> autocompleteNames(String keyword, int limit) {
+		if (keyword == null || keyword.isBlank()) {
+			return Collections.emptyList();
+		}
+		return queryFactory.selectDistinct(company.name)
+				.from(company)
+				.where(company.name.contains(keyword))
+				.orderBy(company.name.asc())
+				.limit(limit)
+				.fetch();
+	}
+
 	private BooleanBuilder matches(Iterable<List<String>> nameAddressPairs) {
 		BooleanBuilder predicate = new BooleanBuilder();
 		for (List<String> pair : nameAddressPairs) {

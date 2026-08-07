@@ -13,4 +13,6 @@ public interface CompanyRepositoryCustom {
 
 	List<Company> findAllNotMatchingNameAndAddress(Iterable<List<String>> nameAddressPairs);
 
+	List<String> autocompleteNames(String keyword, int limit);
+
 }

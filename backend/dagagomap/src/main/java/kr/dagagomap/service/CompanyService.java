@@ -25,4 +25,9 @@ public class CompanyService {
 				.toList();
 	}
 
+	@Transactional(readOnly = true)
+	public List<String> autocompleteNames(String keyword, int limit) {
+		return companyRepository.autocompleteNames(keyword, limit);
+	}
+
 }

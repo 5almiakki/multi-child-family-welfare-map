@@ -31,4 +31,12 @@ public class CompanyController {
 		return ResponseEntity.ok(companies);
 	}
 
+	@GetMapping("/autocomplete")
+	public ResponseEntity<List<String>> autocomplete(
+			@RequestParam String keyword,
+			@RequestParam(defaultValue = "10") int limit) {
+		List<String> names = companyService.autocompleteNames(keyword, limit);
+		return ResponseEntity.ok(names);
+	}
+
 }
