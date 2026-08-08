@@ -161,9 +161,9 @@ public class CompanySyncBatchService {
 			}
 			oldCompany.updateCoordinatesUpdateRequired(!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress()));
 			oldCompany.updateWithoutCoordinates(
-					item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
-					item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
-					item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
+					Long.parseLong(item.cpSanum()), item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(),
+					item.cpCeoname(), item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(),
+					item.cpInfo(), item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
 			savedCompanies.add(oldCompany);
 		}
 		return CompanySyncResult.successful(savedCompanies, pubDataNameAddressPairs);

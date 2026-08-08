@@ -68,9 +68,10 @@ public class Company {
 	}
 
 	public void updateWithoutCoordinates(
-			String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
+			Long taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
 			String sourceAddress, String tel, String email, String emailFlag, String description, String benefit,
 			String usageStatus, String img, String webFlag) {
+		this.taxId = taxId;
 		this.name = name;
 		this.homepageUrl = homepageUrl;
 		this.category = category;
