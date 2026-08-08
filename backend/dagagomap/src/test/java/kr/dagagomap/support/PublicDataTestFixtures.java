@@ -57,24 +57,7 @@ public final class PublicDataTestFixtures {
 	}
 
 	public static Company existingCompanyMatching(BusanPublicDataResponse.Body.Item item) {
-		return Company.builder()
-				.taxId(Long.valueOf(item.cpSanum()))
-				.name(item.cpCompname())
-				.homepageUrl(item.cpHome())
-				.category(item.cpClass())
-				.gu(item.cpHgu())
-				.ceoName(item.cpCeoname())
-				.beginDate(item.cpSidate())
-				.sourceAddress(item.cpAddr())
-				.tel(item.cpTel())
-				.email(item.cpEmail())
-				.emailFlag(item.cpEmailflag())
-				.description(item.cpInfo())
-				.benefit(item.cpWoo())
-				.usageStatus(item.cpState())
-				.img(item.cpImg())
-				.webFlag(item.cpWebflag())
-				.build();
+		return item.toCompany();
 	}
 
 	public static AddressToCoordinatesConversionResponse coordinates(double latitude, double longitude) {
