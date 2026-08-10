@@ -56,7 +56,7 @@ class CompanySyncBatchServiceTest {
 		companySyncBatchService.syncCompanies();
 
 		Company company = companyRepository.findByNameAndSourceAddress("신규카페", "부산 해운대구 우동 1").orElseThrow();
-		assertThat(company.getTaxId()).isEqualTo(1010101010L);
+		assertThat(company.getTaxId()).isEqualTo("1010101010L");
 		assertThat(company.getName()).isEqualTo("신규카페");
 		assertThat(company.getLatitude()).isEqualTo(35.1796);
 		assertThat(company.getLongitude()).isEqualTo(129.0756);
