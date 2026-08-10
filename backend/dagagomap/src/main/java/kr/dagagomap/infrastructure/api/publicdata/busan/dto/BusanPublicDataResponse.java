@@ -106,7 +106,7 @@ public record BusanPublicDataResponse(
 
 			public Company toCompany() {
 				return Company.builder()
-						.taxId(cpSanum == null ? null : Long.valueOf(cpSanum))
+						.taxId(cpSanum)
 						.name(cpCompname)
 						.homepageUrl(cpHome)
 						.category(cpClass)

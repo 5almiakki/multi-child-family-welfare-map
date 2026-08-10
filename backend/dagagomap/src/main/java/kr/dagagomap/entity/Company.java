@@ -17,7 +17,7 @@ public class Company {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	private Long taxId; // 사업자번호
+	private String taxId; // 사업자번호
 	private String name; // 참여업체명
 	private String homepageUrl; // URL
 	private String category; // 업종코드
@@ -40,7 +40,7 @@ public class Company {
 
 	@Builder
 	public Company(
-			Long taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
+			String taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
 			String sourceAddress, String normalizedAddress, String tel, String email, String emailFlag,
 			String description, String benefit, String usageStatus, String img, String webFlag) {
 		this.taxId = taxId;
@@ -68,7 +68,7 @@ public class Company {
 	}
 
 	public void updateWithoutCoordinates(
-			Long taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
+			String taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
 			String sourceAddress, String tel, String email, String emailFlag, String description, String benefit,
 			String usageStatus, String img, String webFlag) {
 		this.taxId = taxId;
