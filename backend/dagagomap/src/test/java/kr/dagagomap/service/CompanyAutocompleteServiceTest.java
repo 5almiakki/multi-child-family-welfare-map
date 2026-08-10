@@ -36,11 +36,11 @@ class CompanyAutocompleteServiceTest {
 	void setUp() {
 		companyRepository.deleteAll();
 		companyRepository.saveAll(List.of(
-				existingCompany(1L, "해운대 카페", "부산 해운대구 우동 1"),
-				existingCompany(2L, "해운대 레스토랑", "부산 해운대구 좌동 2"),
-				existingCompany(3L, "광안 카페", "부산 수영구 광안동 3"),
-				existingCompany(4L, "서면 맛집", "부산 부산진구 부전동 4"),
-				existingCompany(5L, "카페 드롭탑", "부산 해운대구 중동 5")
+				existingCompany("1", "해운대 카페", "부산 해운대구 우동 1"),
+				existingCompany("2", "해운대 레스토랑", "부산 해운대구 좌동 2"),
+				existingCompany("3", "광안 카페", "부산 수영구 광안동 3"),
+				existingCompany("4", "서면 맛집", "부산 부산진구 부전동 4"),
+				existingCompany("5", "카페 드롭탑", "부산 해운대구 중동 5")
 		));
 	}
 
@@ -89,7 +89,7 @@ class CompanyAutocompleteServiceTest {
 	@Test
 	@DisplayName("동일한 업체명은 중복 없이 반환한다")
 	void returnsDistinctNames() {
-		companyRepository.save(existingCompany(6L, "해운대 카페", "부산 해운대구 우동 99"));
+		companyRepository.save(existingCompany("6", "해운대 카페", "부산 해운대구 우동 99"));
 
 		List<String> result = companyService.autocompleteNames("해운대 카페", 10);
 

@@ -35,7 +35,7 @@ public final class PublicDataTestFixtures {
 				"Y");
 	}
 
-	public static Company existingCompany(long taxId, String name, String address) {
+	public static Company existingCompany(String taxId, String name, String address) {
 		return Company.builder()
 				.taxId(taxId)
 				.name(name)
