@@ -14,6 +14,7 @@ import java.util.Set;
 @Service
 public class CompanyService {
 
+	private final CompanySyncBatchService companySyncBatchService;
 	private final CompanyRepository companyRepository;
 
 	@Transactional(readOnly = true)
@@ -28,6 +29,10 @@ public class CompanyService {
 	@Transactional(readOnly = true)
 	public List<String> autocompleteNames(String keyword, int limit) {
 		return companyRepository.autocompleteNames(keyword, limit);
+	}
+
+	public void triggerCompanySync() {
+		companySyncBatchService.syncCompanies();
 	}
 
 }
