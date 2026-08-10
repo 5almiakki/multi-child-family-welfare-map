@@ -38,7 +38,7 @@ class UpdateCompaniesIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("공공데이터 → 카카오 API 좌표 변환 → DB 저장 전체 흐름 통합 테스트")
+	@DisplayName("공공데이터 → DB 저장 → 카카오 API 좌표 변환 → DB 저장 전체 흐름 통합 테스트")
 	void updateCompaniesTest() {
 		// When: 실제 외부 API 호출 및 저장 실행
 		companySyncBatchService.syncCompanies();
