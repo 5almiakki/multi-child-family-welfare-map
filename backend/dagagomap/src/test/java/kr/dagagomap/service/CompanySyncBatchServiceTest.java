@@ -56,7 +56,7 @@ class CompanySyncBatchServiceTest {
 		companySyncBatchService.syncCompanies();
 
 		Company company = companyRepository.findByNameAndSourceAddress("신규카페", "부산 해운대구 우동 1").orElseThrow();
-		assertThat(company.getTaxId()).isEqualTo(1010101010L);
+		assertThat(company.getTaxId()).isEqualTo("1010101010");
 		assertThat(company.getName()).isEqualTo("신규카페");
 		assertThat(company.getLatitude()).isEqualTo(35.1796);
 		assertThat(company.getLongitude()).isEqualTo(129.0756);
@@ -66,7 +66,7 @@ class CompanySyncBatchServiceTest {
 	@Test
 	@DisplayName("기존 업체의 주소를 제외하고 변경된 정보(전화번호 등)를 반영한다")
 	void updatesChangedCompanyFields() {
-		companyRepository.save(existingCompany(2020202020L, "변경업체", "부산 해운대구 좌동 10"));
+		companyRepository.save(existingCompany("2020202020", "변경업체", "부산 해운대구 좌동 10"));
 		BusanPublicDataResponse.Body.Item updatedItem = item("2020202020", "변경업체", "부산 해운대구 좌동 10");
 		stubSinglePage(updatedItem);
 
@@ -80,7 +80,7 @@ class CompanySyncBatchServiceTest {
 	@Test
 	@DisplayName("주소가 변경된 기존 업체의 좌표를 다시 조회해 반영한다")
 	void refetchesCoordinatesWhenAddressChanges() {
-		Company company = existingCompany(3030303030L, "좌표갱신상점", "부산 해운대구 중동 1");
+		Company company = existingCompany("3030303030", "좌표갱신상점", "부산 해운대구 중동 1");
 		company.updateCoordinates(1.0, 1.0);
 		companyRepository.save(company);
 
@@ -115,7 +115,7 @@ class CompanySyncBatchServiceTest {
 	@Test
 	@DisplayName("공공데이터에 없는 기존 업체를 완전히 삭제한다")
 	void deletesCompaniesMissingFromPublicData() {
-		companyRepository.save(existingCompany(5050505050L, "삭제대상", "부산 해운대구 우동 4"));
+		companyRepository.save(existingCompany("5050505050", "삭제대상", "부산 해운대구 우동 4"));
 		BusanPublicDataResponse.Body.Item activeItem = item("6060606060", "유지대상", "부산 해운대구 우동 5");
 		stubSinglePage(activeItem);
 
