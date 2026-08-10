@@ -66,7 +66,7 @@ public class CompanySyncBatchService {
 		log.info("== Company info update completed. Duration: {}ms ==", endTime - beginTime);
 	}
 
-	private void syncCompaniesWithPublicData() {
+	public void syncCompaniesWithPublicData() {
 		// 비동기 요청 시 사용할 전체 업체 수 확인을 위해 첫 페이지 조회
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
@@ -200,7 +200,7 @@ public class CompanySyncBatchService {
 				|| !Objects.equals(item.cpWebflag(), oldCompany.getWebFlag());
 	}
 
-	private void updateCoordinatesWhereRequired() {
+	public void updateCoordinatesWhereRequired() {
 		List<Company> companies = companyRepository.findAllByCoordinatesUpdateRequired(true);
 		List<CompletableFuture<Void>> futures = new ArrayList<>(companies.size());
 		companies.forEach(company -> {
