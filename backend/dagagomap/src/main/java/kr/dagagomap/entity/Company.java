@@ -1,9 +1,6 @@
 package kr.dagagomap.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +26,7 @@ public class Company {
 	private String tel; // 연락처
 	private String email; // 이메일
 	private String emailFlag; // 이메일 수신여부
+	@Column(columnDefinition = "TEXT")
 	private String description; // 회사소개
 	private String benefit; // 우대 내용
 	private String usageStatus; // 사용여부
