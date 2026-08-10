@@ -9,6 +9,7 @@ import kr.dagagomap.entity.QCompany;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -54,7 +55,7 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 	}
 
 	@Override
-	public List<Company> findAllMatchingNameAndAddress(Iterable<List<String>> nameAddressPairs) {
+	public List<Company> findAllMatchingNameAndAddress(Collection<List<String>> nameAddressPairs) {
 		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
 			return Collections.emptyList();
 		}
@@ -64,7 +65,7 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 	}
 
 	@Override
-	public List<Company> findAllNotMatchingNameAndAddress(Iterable<List<String>> nameAddressPairs) {
+	public List<Company> findAllNotMatchingNameAndAddress(Collection<List<String>> nameAddressPairs) {
 		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
 			return queryFactory.selectFrom(company).fetch();
 		}
