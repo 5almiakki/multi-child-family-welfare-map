@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 public class CompanyRetrievalResponseDto {
 
-	private final Long taxId; // 사업자번호
+	private final String taxId; // 사업자번호
 	private final String name; // 참여업체명
 	private final String homepageUrl; // URL
 	private final String category; // 업종코드
