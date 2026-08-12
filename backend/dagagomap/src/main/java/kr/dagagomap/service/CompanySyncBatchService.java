@@ -241,11 +241,11 @@ public class CompanySyncBatchService {
 			this.pubDataNameAddressPairs = pubDataNameAddressPairs;
 		}
 
-		public static CompanySyncResult successful(List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs) {
+		private static CompanySyncResult successful(List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs) {
 			return new CompanySyncResult(true, savedCompanies, pubDataNameAddressPairs);
 		}
 
-		public static CompanySyncResult failed() {
+		private static CompanySyncResult failed() {
 			return new CompanySyncResult(false, Collections.emptyList(), Collections.emptySet());
 		}
 
