@@ -42,12 +42,7 @@ class SavePubDataToDbTest {
 	void savePubDataToDbTest() {
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, 1);
 		int companyCount = res.body().totalCount();
-		try {
-			companySyncBatchService.syncCompaniesWithPublicData();
-		} catch (Exception e) {
-			log.error(e.getMessage(), e);
-			assertThat(e).isNull();
-		}
+		companySyncBatchService.syncCompaniesWithPublicData();
 		assertThat(companyRepository.findAll()).hasSize(companyCount);
 	}
 
