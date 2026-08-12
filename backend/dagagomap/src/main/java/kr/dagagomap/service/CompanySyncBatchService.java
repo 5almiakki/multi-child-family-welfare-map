@@ -71,10 +71,10 @@ public class CompanySyncBatchService {
 		// 비동기 요청 시 사용할 전체 업체 수 확인을 위해 첫 페이지 조회
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
-		List<Company> savedCompanies = new ArrayList<>();
+		Map<Company.NaturalKey, Company> savedCompanyMap = new HashMap<>();
 		Set<Company.NaturalKey> naturalKeys = new HashSet<>();
 		// 첫 페이지 내 업체 정보 저장
-		addResults(savedCompanies, naturalKeys, getUpdatedCompanies(res.body().items()));
+		addResults(savedCompanyMap, naturalKeys, getUpdatedCompanies(res.body().items()));
 
 		int pageCount = Math.ceilDiv(companyCount, pageSize);
 		// 페이지 조회 상한 별도 지정이 없으면 위에서 얻은 전체 업체 모두 조회
@@ -106,10 +106,10 @@ public class CompanySyncBatchService {
 				failedPagePresent = true;
 				continue;
 			}
-			addResults(savedCompanies, naturalKeys, result);
+			addResults(savedCompanyMap, naturalKeys, result);
 		}
-		if (!savedCompanies.isEmpty()) {
-			companyRepository.saveAll(savedCompanies);
+		if (!savedCompanyMap.isEmpty()) {
+			companyRepository.saveAll(savedCompanyMap.values());
 		}
 		if (failedPagePresent) {
 			return;
@@ -120,8 +120,10 @@ public class CompanySyncBatchService {
 		}
 	}
 
-	private void addResults(List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs, CompanySyncResult result) {
-		savedCompanies.addAll(result.getSavedCompanies());
+	private void addResults(
+			Map<Company.NaturalKey, Company> savedCompanyMap, Set<Company.NaturalKey> pubDataNameAddressPairs,
+			CompanySyncResult result) {
+		result.getSavedCompanies().forEach(company -> savedCompanyMap.put(company.naturalKey(), company));
 		pubDataNameAddressPairs.addAll(result.getPubDataNameAddressPairs());
 	}
 
