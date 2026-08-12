@@ -10,5 +10,6 @@ spring:
 
 custom:
   public-data:
-    page-size: 2
-    max-page-count: -1
+    busan:
+      page-size: 2
+      max-page-count: -1

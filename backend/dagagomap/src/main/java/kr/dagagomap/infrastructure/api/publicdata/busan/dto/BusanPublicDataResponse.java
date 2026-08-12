@@ -125,6 +125,10 @@ public record BusanPublicDataResponse(
 						.build();
 			}
 
+			public Company.NaturalKey toNaturalKey() {
+				return new Company.NaturalKey(cpCompname, cpAddr);
+			}
+
 		}
 
 	}

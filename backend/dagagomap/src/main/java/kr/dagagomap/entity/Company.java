@@ -9,6 +9,13 @@ import lombok.AccessLevel;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Entity
+@Table(
+		name = "company",
+		uniqueConstraints = @UniqueConstraint(
+				name = "uk_company_name_source_address",
+				columnNames = {"name", "source_address"}
+		)
+)
 public class Company {
 
 	@Id
@@ -89,6 +96,12 @@ public class Company {
 
 	public void updateCoordinatesUpdateRequired(Boolean coordinatesUpdateRequired) {
 		this.coordinatesUpdateRequired = coordinatesUpdateRequired;
+	}
+
+	public record NaturalKey(String name, String sourceAddress) {}
+
+	public NaturalKey naturalKey() {
+		return new NaturalKey(name, sourceAddress);
 	}
 
 }

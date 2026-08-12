@@ -9,9 +9,7 @@ import kr.dagagomap.entity.QCompany;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Repository
@@ -54,23 +52,22 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 	}
 
 	@Override
-	public List<Company> findAllMatchingNameAndAddress(Iterable<List<String>> nameAddressPairs) {
-		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
+	public List<Company> findAllMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys) {
+		if (naturalKeys == null || naturalKeys.isEmpty()) {
 			return Collections.emptyList();
 		}
 		return queryFactory.selectFrom(company)
-				.where(matches(nameAddressPairs))
+				.where(matches(naturalKeys))
 				.fetch();
 	}
 
 	@Override
-	public List<Company> findAllNotMatchingNameAndAddress(Iterable<List<String>> nameAddressPairs) {
-		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
-			return queryFactory.selectFrom(company).fetch();
-		}
-		return queryFactory.selectFrom(company)
-				.where(matches(nameAddressPairs).not())
-				.fetch();
+	public List<Company> findAllNotMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys) {
+		Set<Company.NaturalKey> naturalKeySet = new HashSet<>(naturalKeys);
+		List<Company> allCompanies = queryFactory.selectFrom(company).fetch();
+		return allCompanies.stream()
+				.filter(c -> !naturalKeySet.contains(c.naturalKey()))
+				.toList();
 	}
 
 	@Override
@@ -86,10 +83,11 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 				.fetch();
 	}
 
-	private BooleanBuilder matches(Iterable<List<String>> nameAddressPairs) {
+	private BooleanBuilder matches(Collection<Company.NaturalKey> naturalKeys) {
 		BooleanBuilder predicate = new BooleanBuilder();
-		for (List<String> pair : nameAddressPairs) {
-			predicate.or(company.name.eq(pair.get(0)).and(company.sourceAddress.eq(pair.get(1))));
+		for (var naturalKey : naturalKeys) {
+			predicate.or(company.name.eq(naturalKey.name())
+					.and(company.sourceAddress.eq(naturalKey.sourceAddress())));
 		}
 		return predicate;
 	}

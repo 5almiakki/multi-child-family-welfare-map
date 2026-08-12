@@ -2,6 +2,7 @@ package kr.dagagomap.service;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
@@ -33,8 +34,8 @@ public class CompanySyncBatchService {
 	private final CompanyRepository companyRepository;
 
 	public CompanySyncBatchService(
-			@Value("${custom.public-data.page-size:10}") int pageSize,
-			@Value("${custom.public-data.max-page-count:-1}") int maxPageCount,
+			@Value("${custom.public-data.busan.page-size:10}") int pageSize,
+			@Value("${custom.public-data.busan.max-page-count:-1}") int maxPageCount,
 			@Qualifier("applicationTaskExecutor") AsyncTaskExecutor asyncTaskExecutor,
 			BusanPublicDataClient publicDataClient,
 			KakaoLocalClient kakaoLocalClient,
@@ -71,9 +72,9 @@ public class CompanySyncBatchService {
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
 		List<Company> savedCompanies = new ArrayList<>();
-		Set<List<String>> pubDataNameAddressPairs = new HashSet<>();
+		Set<Company.NaturalKey> naturalKeys = new HashSet<>();
 		// 첫 페이지 내 업체 정보 저장
-		addResults(savedCompanies, pubDataNameAddressPairs, getUpdatedCompanies(res.body().items()));
+		addResults(savedCompanies, naturalKeys, getUpdatedCompanies(res.body().items()));
 
 		int pageCount = Math.ceilDiv(companyCount, pageSize);
 		// 페이지 조회 상한 별도 지정이 없으면 위에서 얻은 전체 업체 모두 조회
@@ -105,7 +106,7 @@ public class CompanySyncBatchService {
 				failedPagePresent = true;
 				continue;
 			}
-			addResults(savedCompanies, pubDataNameAddressPairs, result);
+			addResults(savedCompanies, naturalKeys, result);
 		}
 		if (!savedCompanies.isEmpty()) {
 			companyRepository.saveAll(savedCompanies);
@@ -113,13 +114,13 @@ public class CompanySyncBatchService {
 		if (failedPagePresent) {
 			return;
 		}
-		List<Company> deletedCompanies = companyRepository.findAllNotMatchingNameAndAddress(pubDataNameAddressPairs);
+		List<Company> deletedCompanies = companyRepository.findAllNotMatchingNameAndAddress(naturalKeys);
 		if (!deletedCompanies.isEmpty()) {
 			companyRepository.deleteAll(deletedCompanies);
 		}
 	}
 
-	private void addResults(List<Company> savedCompanies, Set<List<String>> pubDataNameAddressPairs, CompanySyncResult result) {
+	private void addResults(List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs, CompanySyncResult result) {
 		savedCompanies.addAll(result.getSavedCompanies());
 		pubDataNameAddressPairs.addAll(result.getPubDataNameAddressPairs());
 	}
@@ -136,19 +137,18 @@ public class CompanySyncBatchService {
 	 * @return 리스트와 셋을 포함하는 객체
 	 */
 	private CompanySyncResult getUpdatedCompanies(BusanPublicDataResponse.Body.Item[] pubData) {
-		List<List<String>> nameAddressPairs = Arrays.stream(pubData)
-				.map(item -> List.of(item.cpCompname(), item.cpAddr()))
+		List<Company.NaturalKey> naturalKeys = Arrays.stream(pubData)
+				.map(item -> item.toNaturalKey())
 				.toList();
-		List<Company> oldCompanies = companyRepository.findAllMatchingNameAndAddress(nameAddressPairs);
-		Map<List<String>, Company> oldCompanyMap = oldCompanies.stream()
-				.collect(Collectors.toMap(
-						c -> List.of(c.getName(), c.getSourceAddress()), c -> c));
+		List<Company> oldCompanies = companyRepository.findAllMatchingNameAndAddress(naturalKeys);
+		Map<Company.NaturalKey, Company> oldCompanyMap = oldCompanies.stream()
+				.collect(Collectors.toMap(Company::naturalKey, Function.identity()));
 		List<Company> savedCompanies = new ArrayList<>();
-		Set<List<String>> pubDataNameAddressPairs = new HashSet<>();
+		Set<Company.NaturalKey> pubDataNaturalKeys = new HashSet<>();
 		for (var item : pubData) {
-			List<String> nameAddressPair = List.of(item.cpCompname(), item.cpAddr());
-			pubDataNameAddressPairs.add(nameAddressPair);
-			Company oldCompany = oldCompanyMap.remove(nameAddressPair);
+			Company.NaturalKey naturalKey = item.toNaturalKey();
+			pubDataNaturalKeys.add(naturalKey);
+			Company oldCompany = oldCompanyMap.remove(naturalKey);
 			// 아예 새 업체인 경우
 			if (oldCompany == null) {
 				Company company = item.toCompany();
@@ -166,7 +166,7 @@ public class CompanySyncBatchService {
 					item.cpInfo(), item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
 			savedCompanies.add(oldCompany);
 		}
-		return CompanySyncResult.successful(savedCompanies, pubDataNameAddressPairs);
+		return CompanySyncResult.successful(savedCompanies, pubDataNaturalKeys);
 	}
 
 	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(String address) {
@@ -233,19 +233,19 @@ public class CompanySyncBatchService {
 
 		private final boolean successful;
 		private final List<Company> savedCompanies;
-		private final Set<List<String>> pubDataNameAddressPairs;
+		private final Set<Company.NaturalKey> pubDataNameAddressPairs;
 
-		private CompanySyncResult(boolean successful, List<Company> savedCompanies, Set<List<String>> pubDataNameAddressPairs) {
+		private CompanySyncResult(boolean successful, List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs) {
 			this.successful = successful;
 			this.savedCompanies = savedCompanies;
 			this.pubDataNameAddressPairs = pubDataNameAddressPairs;
 		}
 
-		public static CompanySyncResult successful(List<Company> savedCompanies, Set<List<String>> pubDataNameAddressPairs) {
+		private static CompanySyncResult successful(List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs) {
 			return new CompanySyncResult(true, savedCompanies, pubDataNameAddressPairs);
 		}
 
-		public static CompanySyncResult failed() {
+		private static CompanySyncResult failed() {
 			return new CompanySyncResult(false, Collections.emptyList(), Collections.emptySet());
 		}
 
