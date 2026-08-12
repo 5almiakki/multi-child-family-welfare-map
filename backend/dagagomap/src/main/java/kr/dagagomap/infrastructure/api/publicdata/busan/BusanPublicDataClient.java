@@ -7,6 +7,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
+import org.springframework.resilience.annotation.ConcurrencyLimit;
 import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -19,14 +20,14 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class BusanPublicDataClient {
 
-	private final String publicDataServicekey;
+	private final String publicDataServiceKey;
 	private final RestClient restClient;
 
 	public BusanPublicDataClient(
 			@Value("${custom.public-data.busan.service-key}")
-			String publicDataServicekey,
+			String publicDataServiceKey,
 			RestClient.Builder restClientBuilder) {
-		this.publicDataServicekey = publicDataServicekey;
+		this.publicDataServiceKey = publicDataServiceKey;
 		this.restClient = restClientBuilder
 				.configureMessageConverters(configurer -> configurer
 						.withXmlConverter(new JacksonXmlHttpMessageConverter()))
@@ -35,9 +36,10 @@ public class BusanPublicDataClient {
 	}
 
 	@Retryable
+	@ConcurrencyLimit(limitString = "${custom.public-data.busan.concurrency-limit:10}")
 	public BusanPublicDataResponse getFamilyLoveCardInfo(int pageNo, int numOfRows) {
 		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo"
-				+ "?ServiceKey=" + publicDataServicekey
+				+ "?ServiceKey=" + publicDataServiceKey
 				+ "&pageNo=" + pageNo
 				+ "&numOfRows=" + numOfRows
 				+ "&resultType=xml";

@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @SpringBootTest({
-		"custom.public-data.page-size=10000"
+		"custom.public-data.busan.page-size=100"
 })
 @ActiveProfiles({ "secret", "test" })
 @Tag("manual-infra-integration")

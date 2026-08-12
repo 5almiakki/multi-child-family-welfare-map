@@ -19,4 +19,6 @@ custom:
     local:
       concurrency-limit: 100
   public-data:
-    page-size: 100
+    busan:
+      page-size: 100
+      concurrency-limit: 10

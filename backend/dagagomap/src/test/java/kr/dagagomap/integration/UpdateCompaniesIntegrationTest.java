@@ -19,8 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @SpringBootTest(properties = {
-		"custom.public-data.page-size=1",
-		"custom.public-data.max-page-count=1"
+		"custom.public-data.busan.page-size=1",
+		"custom.public-data.busan.max-page-count=1"
 })
 @ActiveProfiles({ "secret", "test" })
 @Tag("manual-infra-integration")

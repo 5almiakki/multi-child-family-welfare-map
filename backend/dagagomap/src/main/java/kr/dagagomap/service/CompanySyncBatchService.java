@@ -33,8 +33,8 @@ public class CompanySyncBatchService {
 	private final CompanyRepository companyRepository;
 
 	public CompanySyncBatchService(
-			@Value("${custom.public-data.page-size:10}") int pageSize,
-			@Value("${custom.public-data.max-page-count:-1}") int maxPageCount,
+			@Value("${custom.public-data.busan.page-size:10}") int pageSize,
+			@Value("${custom.public-data.busan.max-page-count:-1}") int maxPageCount,
 			@Qualifier("applicationTaskExecutor") AsyncTaskExecutor asyncTaskExecutor,
 			BusanPublicDataClient publicDataClient,
 			KakaoLocalClient kakaoLocalClient,
