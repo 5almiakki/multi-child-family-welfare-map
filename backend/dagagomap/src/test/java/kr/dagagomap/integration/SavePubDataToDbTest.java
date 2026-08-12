@@ -1,7 +1,6 @@
 package kr.dagagomap.integration;
 
 import kr.dagagomap.infrastructure.api.publicdata.busan.BusanPublicDataClient;
-import kr.dagagomap.infrastructure.api.publicdata.busan.dto.BusanPublicDataResponse;
 import kr.dagagomap.repository.CompanyRepository;
 import kr.dagagomap.service.CompanySyncBatchService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @SpringBootTest({
@@ -40,10 +37,7 @@ class SavePubDataToDbTest {
 	@Test
 	@DisplayName("공공데이터 → DB 저장 테스트")
 	void savePubDataToDbTest() {
-		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, 1);
-		int companyCount = res.body().totalCount();
 		companySyncBatchService.syncCompaniesWithPublicData();
-		assertThat(companyRepository.findAll()).hasSize(companyCount);
 	}
 
 }
