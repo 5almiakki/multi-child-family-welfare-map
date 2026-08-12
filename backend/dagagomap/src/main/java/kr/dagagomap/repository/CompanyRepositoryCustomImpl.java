@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 @RequiredArgsConstructor
 @Repository
@@ -53,12 +54,11 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 
 	@Override
 	public List<Company> findAllMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys) {
-		if (naturalKeys == null || naturalKeys.isEmpty()) {
-			return Collections.emptyList();
-		}
-		return queryFactory.selectFrom(company)
-				.where(matches(naturalKeys))
-				.fetch();
+		Set<Company.NaturalKey> naturalKeySet = new HashSet<>(naturalKeys);
+		List<Company> allCompanies = queryFactory.selectFrom(company).fetch();
+		return allCompanies.stream()
+				.filter(c -> naturalKeySet.contains(c.naturalKey()))
+				.toList();
 	}
 
 	@Override
