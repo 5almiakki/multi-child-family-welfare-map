@@ -1,6 +1,5 @@
 package kr.dagagomap.integration;
 
-import kr.dagagomap.entity.Company;
 import kr.dagagomap.infrastructure.api.publicdata.busan.BusanPublicDataClient;
 import kr.dagagomap.infrastructure.api.publicdata.busan.dto.BusanPublicDataResponse;
 import kr.dagagomap.repository.CompanyRepository;
@@ -11,18 +10,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @SpringBootTest({
-		"custom.public-data.busan.page-size=100"
+		"custom.public-data.busan.page-size=10000"
 })
 @ActiveProfiles({ "secret", "test" })
 @Tag("manual-infra-integration")
