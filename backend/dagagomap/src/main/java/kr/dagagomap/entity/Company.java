@@ -9,6 +9,13 @@ import lombok.AccessLevel;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Entity
+@Table(
+		name = "company",
+		uniqueConstraints = @UniqueConstraint(
+				name = "uk_company_name_source_address",
+				columnNames = {"name", "source_address"}
+		)
+)
 public class Company {
 
 	@Id
