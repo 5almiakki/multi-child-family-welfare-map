@@ -53,7 +53,7 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 
 	@Override
 	public List<Company> findAllMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys) {
-		if (naturalKeys == null || !naturalKeys.isEmpty()) {
+		if (naturalKeys == null || naturalKeys.isEmpty()) {
 			return Collections.emptyList();
 		}
 		return queryFactory.selectFrom(company)
