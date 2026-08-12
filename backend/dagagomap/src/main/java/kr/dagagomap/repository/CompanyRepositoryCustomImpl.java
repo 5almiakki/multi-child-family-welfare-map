@@ -9,10 +9,7 @@ import kr.dagagomap.entity.QCompany;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Repository
@@ -66,12 +63,11 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 
 	@Override
 	public List<Company> findAllNotMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys) {
-		if (naturalKeys == null || !naturalKeys.isEmpty()) {
-			return queryFactory.selectFrom(company).fetch();
-		}
-		return queryFactory.selectFrom(company)
-				.where(matches(naturalKeys).not())
-				.fetch();
+		Set<Company.NaturalKey> naturalKeySet = new HashSet<>(naturalKeys);
+		List<Company> allCompanies = queryFactory.selectFrom(company).fetch();
+		return allCompanies.stream()
+				.filter(c -> !naturalKeySet.contains(c.naturalKey()))
+				.toList();
 	}
 
 	@Override
