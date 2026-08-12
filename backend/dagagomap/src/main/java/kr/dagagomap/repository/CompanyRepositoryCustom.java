@@ -10,9 +10,9 @@ public interface CompanyRepositoryCustom {
 
 	List<Company> findCompanies(String name, Set<String> gus, Set<String> categories, double latitude, double longitude);
 
-	List<Company> findAllMatchingNameAndAddress(Collection<List<String>> nameAddressPairs);
+	List<Company> findAllMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys);
 
-	List<Company> findAllNotMatchingNameAndAddress(Collection<List<String>> nameAddressPairs);
+	List<Company> findAllNotMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys);
 
 	List<String> autocompleteNames(String keyword, int limit);
 

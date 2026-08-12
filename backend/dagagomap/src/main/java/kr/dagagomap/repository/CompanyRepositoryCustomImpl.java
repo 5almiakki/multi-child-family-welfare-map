@@ -55,22 +55,22 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 	}
 
 	@Override
-	public List<Company> findAllMatchingNameAndAddress(Collection<List<String>> nameAddressPairs) {
-		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
+	public List<Company> findAllMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys) {
+		if (naturalKeys == null || !naturalKeys.isEmpty()) {
 			return Collections.emptyList();
 		}
 		return queryFactory.selectFrom(company)
-				.where(matches(nameAddressPairs))
+				.where(matches(naturalKeys))
 				.fetch();
 	}
 
 	@Override
-	public List<Company> findAllNotMatchingNameAndAddress(Collection<List<String>> nameAddressPairs) {
-		if (nameAddressPairs == null || !nameAddressPairs.iterator().hasNext()) {
+	public List<Company> findAllNotMatchingNameAndAddress(Collection<Company.NaturalKey> naturalKeys) {
+		if (naturalKeys == null || !naturalKeys.isEmpty()) {
 			return queryFactory.selectFrom(company).fetch();
 		}
 		return queryFactory.selectFrom(company)
-				.where(matches(nameAddressPairs).not())
+				.where(matches(naturalKeys).not())
 				.fetch();
 	}
 
@@ -87,10 +87,11 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 				.fetch();
 	}
 
-	private BooleanBuilder matches(Iterable<List<String>> nameAddressPairs) {
+	private BooleanBuilder matches(Collection<Company.NaturalKey> naturalKeys) {
 		BooleanBuilder predicate = new BooleanBuilder();
-		for (List<String> pair : nameAddressPairs) {
-			predicate.or(company.name.eq(pair.get(0)).and(company.sourceAddress.eq(pair.get(1))));
+		for (var naturalKey : naturalKeys) {
+			predicate.or(company.name.eq(naturalKey.name())
+					.and(company.sourceAddress.eq(naturalKey.sourceAddress())));
 		}
 		return predicate;
 	}

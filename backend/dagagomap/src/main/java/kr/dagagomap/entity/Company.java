@@ -91,4 +91,10 @@ public class Company {
 		this.coordinatesUpdateRequired = coordinatesUpdateRequired;
 	}
 
+	public record NaturalKey(String name, String sourceAddress) {}
+
+	public NaturalKey naturalKey() {
+		return new NaturalKey(name, sourceAddress);
+	}
+
 }
