@@ -36,7 +36,7 @@ public class BusanPublicDataClient {
 	}
 
 	@Retryable
-	@ConcurrencyLimit(limitString = "${custom.public-data.busan.concurrency-limit:10}")
+	@ConcurrencyLimit(limitString = "${custom.public-data.busan.concurrency-limit:1}")
 	public BusanPublicDataResponse getFamilyLoveCardInfo(int pageNo, int numOfRows) {
 		String uri = "/6260000/BusanFmlyLvcrInfoService/getFmlyLvcrInfo"
 				+ "?ServiceKey=" + publicDataServiceKey

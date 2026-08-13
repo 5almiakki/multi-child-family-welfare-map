@@ -33,7 +33,7 @@ public class KakaoLocalClient {
 	}
 
 	@Retryable
-	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:50}")
+	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:1}")
 	public AddressToCoordinatesConversionResponse convertAddressToCoordinates(String address) {
 		String uri = "/v2/local/search/address.JSON?query=" + address;
 		var response = restClient.get()
@@ -46,7 +46,7 @@ public class KakaoLocalClient {
 	}
 
 	@Retryable
-	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:50}")
+	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:1}")
 	public PlaceSearchByKeywordResponse searchPlaceByKeyword(String keyword) {
 		String uri = "/v2/local/search/keyword.JSON?query=" + keyword;
 		var response = restClient.get()
