@@ -1,6 +1,5 @@
 package kr.dagagomap.integration;
 
-import kr.dagagomap.infrastructure.api.publicdata.busan.BusanPublicDataClient;
 import kr.dagagomap.repository.CompanyRepository;
 import kr.dagagomap.service.CompanySyncBatchService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +24,6 @@ class SavePubDataToDbTest {
 
 	@Autowired
 	private CompanyRepository companyRepository;
-
-	@Autowired
-	private BusanPublicDataClient publicDataClient;
 
 	@BeforeEach
 	void cleanUp() {
