@@ -17,8 +17,8 @@ spring:
 custom:
   kakao:
     local:
-      concurrency-limit: 100
+      concurrency-limit: 4
   public-data:
     busan:
       page-size: 100
-      concurrency-limit: 10
+      concurrency-limit: 4
