@@ -31,8 +31,9 @@ public class KakaoLocalClient {
 
 	private final RestClient restClient;
 	private final ObjectMapper objectMapper;
-	private final Set<Thread> addressToCoordinatesConvertingThreads = ConcurrentHashMap.newKeySet();
-	private volatile LocalDate addressToCoordinatesConversionQuotaExceededDate;
+
+	private final QuotaGuard addressToCoordinatesConversionQuotaGuard = new QuotaGuard();
+	private final QuotaGuard placeSearchByKeywordQuotaGuard = new QuotaGuard();
 
 	public KakaoLocalClient(
 			@Value("${custom.kakao.rest-api-key}")
@@ -50,12 +51,13 @@ public class KakaoLocalClient {
 	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:1}")
 	public AddressToCoordinatesConversionResponse convertAddressToCoordinates(String address) {
 		String uri = "/v2/local/search/address.JSON?query=" + address;
-		return executeTracked(() -> {
+		return addressToCoordinatesConversionQuotaGuard.executeTracked(() -> {
 			var response = restClient.get()
 					.uri(uri)
 					.retrieve()
-					.onStatus(HttpStatusCode::is4xxClientError, this::handle4xxClientError)
-					.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
+					.onStatus(HttpStatusCode::is4xxClientError,
+							(req, res) -> handle4xxClientError(res, addressToCoordinatesConversionQuotaGuard))
+					.onStatus(HttpStatusCode::isError, (req, res) -> logErrorAndThrow(res))
 					.body(AddressToCoordinatesConversionResponse.class);
 			logDebugIfNotNull(response);
 			return response;
@@ -66,35 +68,17 @@ public class KakaoLocalClient {
 	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:1}")
 	public PlaceSearchByKeywordResponse searchPlaceByKeyword(String keyword) {
 		String uri = "/v2/local/search/keyword.JSON?query=" + keyword;
-		// TODO executeTracked로 감싸기
-		var response = restClient.get()
-				.uri(uri)
-				.retrieve()
-				.onStatus(HttpStatusCode::isError, this::logErrorAndThrow)
-				.body(PlaceSearchByKeywordResponse.class);
-		logDebugIfNotNull(response);
-		return response;
-	}
-
-	private <T> T executeTracked(Supplier<T> call) {
-		checkQuotaNotExceeded();
-		Thread currentThread = Thread.currentThread();
-		addressToCoordinatesConvertingThreads.add(currentThread);
-		try {
-			return call.get();
-		} catch (RestClientException e) {
-			checkQuotaNotExceeded();
-			throw e;
-		} finally {
-			addressToCoordinatesConvertingThreads.remove(currentThread);
-			Thread.interrupted();
-		}
-	}
-
-	private void checkQuotaNotExceeded() {
-		if (LocalDate.now().equals(this.addressToCoordinatesConversionQuotaExceededDate)) {
-			throw new KakaoApiQuotaExceededException("Abort request due to Kakao API quota limit.");
-		}
+		return placeSearchByKeywordQuotaGuard.executeTracked(() -> {
+			var response = restClient.get()
+					.uri(uri)
+					.retrieve()
+					.onStatus(HttpStatusCode::is4xxClientError,
+							(req, res) -> handle4xxClientError(res, placeSearchByKeywordQuotaGuard))
+					.onStatus(HttpStatusCode::isError, (req, res) -> logErrorAndThrow(res))
+					.body(PlaceSearchByKeywordResponse.class);
+			logDebugIfNotNull(response);
+			return response;
+		});
 	}
 
 	private void logDebugIfNotNull(AddressToCoordinatesConversionResponse response) {
@@ -133,46 +117,31 @@ public class KakaoLocalClient {
 		log.debug(sb.toString());
 	}
 
-	private void handle4xxClientError(HttpRequest req, ClientHttpResponse res) throws IOException {
+	private void handle4xxClientError(ClientHttpResponse res, QuotaGuard quotaGuard)
+			throws IOException {
 		byte[] bodyBytes = res.getBody().readAllBytes();
 		switch (res.getStatusCode().value()) {
 			case 400:
-				handle400Error(bodyBytes);
+				handle400Error(bodyBytes, quotaGuard);
 				break;
 			default:
 		}
 		logErrorAndThrow(res, bodyBytes);
 	}
 
-	private void handle400Error(byte[] bodyBytes) {
+	private void handle400Error(byte[] bodyBytes, QuotaGuard quotaGuard) {
 		Map<String, Object> body = objectMapper.readValue(bodyBytes, new TypeReference<>() {});
 		if (body.get("code") instanceof Integer code) {
 			switch (code) {
 				case -10: // quota exceeded
-					triggerQuotaExceeded();
+					quotaGuard.trigger();
 					throw new KakaoApiQuotaExceededException("Exceeded Kakao API quota.");
 				default:
 			}
 		}
 	}
 
-	private void triggerQuotaExceeded() {
-		addressToCoordinatesConversionQuotaExceededDate = LocalDate.now();
-		log.error("Kakao API quota exceeded. Block subsequent requests." +
-				" Attempt to cancel requests already in progress.");
-		cancelOtherInFlightRequests();
-	}
-
-	private void cancelOtherInFlightRequests() {
-		Thread currentThread = Thread.currentThread();
-		for (Thread thread : addressToCoordinatesConvertingThreads) {
-			if (thread != currentThread) {
-				thread.interrupt();
-			}
-		}
-	}
-
-	private void logErrorAndThrow(HttpRequest req, ClientHttpResponse res) throws IOException {
+	private void logErrorAndThrow(ClientHttpResponse res) throws IOException {
 		logErrorAndThrow(res, res.getBody().readAllBytes());
 	}
 
@@ -181,6 +150,50 @@ public class KakaoLocalClient {
 		log.error("Kakao API Error: Status={}, Headers={}, Body={}",
 				res.getStatusCode(), res.getHeaders(), responseBody);
 		throw new KakaoApiException("Kakao API Error: " + responseBody);
+	}
+
+	private static final class QuotaGuard {
+
+		private final Set<Thread> inFlightThreads = ConcurrentHashMap.newKeySet();
+		private volatile LocalDate exceededDate;
+
+		void checkNotExceeded() {
+			if (LocalDate.now().equals(exceededDate)) {
+				throw new KakaoApiQuotaExceededException("Abort request due to Kakao API quota limit.");
+			}
+		}
+
+		void trigger() {
+			exceededDate = LocalDate.now();
+			log.info("Kakao API quota exceeded. Block subsequent requests." +
+					" Attempt to cancel requests already in progress.");
+			cancelOthers();
+		}
+
+		void cancelOthers() {
+			Thread currentThread = Thread.currentThread();
+			for (Thread thread : inFlightThreads) {
+				if (thread != currentThread) {
+					thread.interrupt();
+				}
+			}
+		}
+
+		<T> T executeTracked(Supplier<T> call) {
+			checkNotExceeded();
+			Thread currentThread = Thread.currentThread();
+			inFlightThreads.add(currentThread);
+			try {
+				return call.get();
+			} catch (RestClientException e) {
+				checkNotExceeded();
+				throw e;
+			} finally {
+				inFlightThreads.remove(currentThread);
+				Thread.interrupted();
+			}
+		}
+
 	}
 
 }
