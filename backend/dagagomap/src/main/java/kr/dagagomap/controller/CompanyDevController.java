@@ -22,4 +22,10 @@ public class CompanyDevController {
 		return ResponseEntity.noContent().build();
 	}
 
+	@PatchMapping("/trigger-save-pub-data-to-db")
+	public ResponseEntity<Void> triggerSavePubDataToDb() {
+		companyService.triggerSavePubDataToDb();
+		return ResponseEntity.noContent().build();
+	}
+
 }
