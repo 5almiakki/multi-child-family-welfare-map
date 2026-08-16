@@ -16,6 +16,10 @@ public final class PublicDataTestFixtures {
 	}
 
 	public static BusanPublicDataResponse.Body.Item item(String taxId, String name, String address) {
+		return item(taxId, name, address, "2024-01-01");
+	}
+
+	public static BusanPublicDataResponse.Body.Item item(String taxId, String name, String address, String beginDate) {
 		return new BusanPublicDataResponse.Body.Item(
 				name,
 				"https://example.com",
@@ -23,7 +27,7 @@ public final class PublicDataTestFixtures {
 				"해운대구",
 				"대표자",
 				taxId,
-				"2024-01-01",
+				beginDate,
 				address,
 				"051-000-0000",
 				"test@example.com",
@@ -36,6 +40,10 @@ public final class PublicDataTestFixtures {
 	}
 
 	public static Company existingCompany(String taxId, String name, String address) {
+		return existingCompany(taxId, name, address, "2023-01-01");
+	}
+
+	public static Company existingCompany(String taxId, String name, String address, String beginDate) {
 		return Company.builder()
 				.taxId(taxId)
 				.name(name)
@@ -43,7 +51,7 @@ public final class PublicDataTestFixtures {
 				.category("업종")
 				.gu("해운대구")
 				.ceoName("대표자")
-				.beginDate("2023-01-01")
+				.beginDate(beginDate)
 				.sourceAddress(address)
 				.tel("051-111-1111")
 				.email("old@example.com")
