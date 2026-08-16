@@ -10,7 +10,6 @@ import java.util.function.Supplier;
 import kr.dagagomap.exception.KakaoApiException;
 import kr.dagagomap.exception.KakaoApiQuotaExceededException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.resilience.annotation.ConcurrencyLimit;
