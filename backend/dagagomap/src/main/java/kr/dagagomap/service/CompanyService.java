@@ -35,4 +35,8 @@ public class CompanyService {
 		companySyncBatchService.syncCompanies();
 	}
 
+	public void triggerSavePubDataToDb() {
+		companySyncBatchService.syncCompaniesWithPublicData();
+	}
+
 }

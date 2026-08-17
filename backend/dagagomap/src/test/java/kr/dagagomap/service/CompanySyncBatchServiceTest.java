@@ -13,8 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.util.Arrays;
+
 import static kr.dagagomap.support.PublicDataTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -165,9 +168,173 @@ class CompanySyncBatchServiceTest {
 				.containsExactly("성공업체");
 	}
 
+	@Test
+	@DisplayName("식별자가 중복되는 업체를 포함하는 공공데이터를 DB에 여러 번 저장해도 예외 발생이 없다")
+	void savesPubDataWithDuplicateKeysWithoutException() {
+		BusanPublicDataResponse.Body.Item item = item("9090909090", "성공업체", "부산 해운대구 우동 8");
+		when(publicDataClient.getFamilyLoveCardInfo(1, 2))
+				.thenReturn(page(4, 1, 2, item, item));
+
+		assertThatCode(() -> {
+			companySyncBatchService.syncCompanies();
+			companySyncBatchService.syncCompanies();
+		}).doesNotThrowAnyException();
+	}
+
+	@Test
+	@DisplayName("공공데이터에 식별자가 같은 업체가 여럿이고 시행 일자가 모두 유효하면 최신 업체만 저장한다")
+	void savesSingleRecentCompanyWhenDuplicateKeysAndValidDatesExist() {
+		stubCompaniesWithDates("name", "address", "2020-01-01", "2020-01-02");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-01-02");
+	}
+
+	@Test
+	@DisplayName("공공데이터에 식별자가 같은 업체가 여럿이고 시행 일자가 모두 무효하면 한 업체만 저장한다")
+	void savesSingleCompanyWhenDuplicateKeysAndInvalidDatesExist() {
+		stubCompaniesWithDates("name", "address", null, "", "invalid");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1);
+	}
+
+	@Test
+	@DisplayName("공공데이터에 식별자가 같은 업체가 여럿이고 시행 일자가 유효 무효 섞여 있으면 최신 유효한 업체만 저장한다")
+	void savesRecentValidDataWhenDuplicateKeysAndMixedDatesExist() {
+		stubCompaniesWithDates("name", "address", "2020-01-01", "2020-01-02", "invalid");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-01-02");
+	}
+
+	@Test
+	@DisplayName("공공데이터, DB의 업체 시행일자가 유효하면 최신 것을 선택한다")
+	void choosesRecentDataWhenDbAndPubDataValid() {
+		// 공공데이터가 최신인 경우
+		companyRepository.save(existingCompany("1", "name", "address", "2019-01-03"));
+		stubCompaniesWithDates("name", "address", "2020-01-01", "2020-01-02");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-01-02");
+
+		companyRepository.deleteAll();
+
+		// DB가 최신인 경우
+		companyRepository.save(existingCompany("1", "name", "address", "2020-01-03"));
+		stubCompaniesWithDates("name", "address", "2020-01-01", "2020-01-02");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-01-03");
+	}
+
+	@Test
+	@DisplayName("DB 시행일자가 유효하고 공공데이터 시행일자가 무효하면 기존 DB 데이터를 유지한다")
+	void retainsDbCompanyWhenDbValidAndPubDataInvalid() {
+		companyRepository.save(existingCompany("1", "name", "address", "2020-02-02"));
+		stubCompaniesWithDates("name", "address", "invalid", "null");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-02-02");
+	}
+
+	@Test
+	@DisplayName("공공데이터, DB의 업체 시행일자가 각각 혼합, 유효하면 유효한 최신 것을 선택한다")
+	void choosesRecentDataWhenDbValidAndPubDataMixed() {
+		companyRepository.save(existingCompany("1", "name", "address", "2020-02-02"));
+		stubCompaniesWithDates("name", "address", "invalid", "2020-02-03");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-02-03");
+
+		companyRepository.deleteAll();
+
+		companyRepository.save(existingCompany("1", "name", "address", "2020-02-02"));
+		stubCompaniesWithDates("name", "address", "invalid", "2020-02-01");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-02-02");
+	}
+
+	@Test
+	@DisplayName("DB의 업체 시행일자가 무효하면 유효한 공공데이터 중 최신, 모두 무효면 공공데이터 중 하나를 저장한다")
+	void savesPubDataWhenDbInvalid() {
+		companyRepository.save(existingCompany("1", "name1", "address1", "null"));
+		stubCompaniesWithDates("name1", "address1", "invalid", "2020-02-02");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-02-02");
+
+		companyRepository.deleteAll();
+
+		companyRepository.save(existingCompany("1", "name", "address", "null"));
+		stubCompaniesWithDates("name", "address", "2020-02-02", "2020-02-01");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.containsExactly("2020-02-02");
+
+		companyRepository.deleteAll();
+
+		companyRepository.save(existingCompany("1", "name", "address", "null"));
+		stubCompaniesWithDates("name", "address", "invalid", "");
+
+		companySyncBatchService.syncCompanies();
+
+		assertThat(companyRepository.findAll())
+				.hasSize(1)
+				.extracting(Company::getBeginDate)
+				.doesNotContain("null");
+	}
+
 	private void stubSinglePage(BusanPublicDataResponse.Body.Item item) {
 		when(publicDataClient.getFamilyLoveCardInfo(1, 2))
 				.thenReturn(page(1, 1, 2, item));
+	}
+
+	private void stubCompaniesWithDates(String name, String address, String... dates) {
+		BusanPublicDataResponse.Body.Item[] items = Arrays.stream(dates)
+				.map(date -> item("1", name, address, date))
+				.toArray(BusanPublicDataResponse.Body.Item[]::new);
+		when(publicDataClient.getFamilyLoveCardInfo(1, 2))
+				.thenReturn(page(4, 1, 2, items));
 	}
 
 }
