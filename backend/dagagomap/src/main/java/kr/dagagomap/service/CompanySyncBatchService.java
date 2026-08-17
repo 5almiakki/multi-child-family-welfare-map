@@ -1,5 +1,7 @@
 package kr.dagagomap.service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -71,10 +73,10 @@ public class CompanySyncBatchService {
 		// 비동기 요청 시 사용할 전체 업체 수 확인을 위해 첫 페이지 조회
 		BusanPublicDataResponse res = publicDataClient.getFamilyLoveCardInfo(1, pageSize);
 		int companyCount = res.body().totalCount();
-		Map<Company.NaturalKey, Company> savedCompanyMap = new HashMap<>();
-		Set<Company.NaturalKey> naturalKeys = new HashSet<>();
+		Map<Company.NaturalKey, Company> newOrUpdatedCompanyMap = new HashMap<>();
+		Set<Company.NaturalKey> pubDataNaturalKeys = new HashSet<>();
 		// 첫 페이지 내 업체 정보 저장
-		addResults(savedCompanyMap, naturalKeys, getUpdatedCompanies(res.body().items()));
+		addResults(newOrUpdatedCompanyMap, pubDataNaturalKeys, makeResultComparingPubDataAndDb(res.body().items()));
 
 		int pageCount = Math.ceilDiv(companyCount, pageSize);
 		// 페이지 조회 상한 별도 지정이 없으면 위에서 얻은 전체 업체 모두 조회
@@ -90,7 +92,7 @@ public class CompanySyncBatchService {
 			CompletableFuture<CompanySyncResult> future = CompletableFuture.supplyAsync(() -> {
 				try {
 					BusanPublicDataResponse response = publicDataClient.getFamilyLoveCardInfo(targetPage, pageSize);
-					return getUpdatedCompanies(response.body().items());
+					return makeResultComparingPubDataAndDb(response.body().items());
 				} catch (Exception e) {
 					log.warn("Failed to process page [{}]. Skipping this page", targetPage);
 					return CompanySyncResult.failed();
@@ -106,69 +108,91 @@ public class CompanySyncBatchService {
 				failedPagePresent = true;
 				continue;
 			}
-			addResults(savedCompanyMap, naturalKeys, result);
+			addResults(newOrUpdatedCompanyMap, pubDataNaturalKeys, result);
 		}
-		if (!savedCompanyMap.isEmpty()) {
-			companyRepository.saveAll(savedCompanyMap.values());
+		if (!newOrUpdatedCompanyMap.isEmpty()) {
+			companyRepository.saveAll(newOrUpdatedCompanyMap.values());
 		}
 		if (failedPagePresent) {
 			return;
 		}
-		List<Company> deletedCompanies = companyRepository.findAllNotMatchingNameAndAddress(naturalKeys);
+		List<Company> deletedCompanies = companyRepository.findAllNotMatchingNameAndAddress(pubDataNaturalKeys);
 		if (!deletedCompanies.isEmpty()) {
 			companyRepository.deleteAll(deletedCompanies);
 		}
 	}
 
 	private void addResults(
-			Map<Company.NaturalKey, Company> savedCompanyMap, Set<Company.NaturalKey> pubDataNameAddressPairs,
+			Map<Company.NaturalKey, Company> savedCompanyMap, Set<Company.NaturalKey> pubDataNaturalKeys,
 			CompanySyncResult result) {
-		result.getSavedCompanies().forEach(company -> savedCompanyMap.put(company.naturalKey(), company));
-		pubDataNameAddressPairs.addAll(result.getPubDataNameAddressPairs());
+		savedCompanyMap.putAll(result.getNewOrUpdatedCompanyMap());
+		pubDataNaturalKeys.addAll(result.getPubDataNaturalKeys());
 	}
 
-	/**
-	 * 기존 업체 엔티티 중 주어진 공공데이터 업체 정보 <code>pubData</code>의 내용과 다른 것을 고르고
-	 * <code>pubData</code>의 내용을 반영해 리스트에 담는다.
-	 * <br>
-	 * DB에서 없앨 대상을 찾기 위해 <code>pubData</code> 내 모든 사업자번호를 셋에 담는다.
-	 * <br>
-	 * 이 리스트와 셋을 포함하는 객체를 반환한다.
-	 *
-	 * @param pubData 공공데이터 업체 정보
-	 * @return 리스트와 셋을 포함하는 객체
-	 */
-	private CompanySyncResult getUpdatedCompanies(BusanPublicDataResponse.Body.Item[] pubData) {
-		List<Company.NaturalKey> naturalKeys = Arrays.stream(pubData)
-				.map(item -> item.toNaturalKey())
-				.toList();
-		List<Company> oldCompanies = companyRepository.findAllMatchingNameAndAddress(naturalKeys);
-		Map<Company.NaturalKey, Company> oldCompanyMap = oldCompanies.stream()
-				.collect(Collectors.toMap(Company::naturalKey, Function.identity()));
-		List<Company> savedCompanies = new ArrayList<>();
-		Set<Company.NaturalKey> pubDataNaturalKeys = new HashSet<>();
+	private CompanySyncResult makeResultComparingPubDataAndDb(BusanPublicDataResponse.Body.Item[] pubData) {
+		Map<Company.NaturalKey, BusanPublicDataResponse.Body.Item> pubDataMap = new HashMap<>();
 		for (var item : pubData) {
 			Company.NaturalKey naturalKey = item.toNaturalKey();
-			pubDataNaturalKeys.add(naturalKey);
-			Company oldCompany = oldCompanyMap.remove(naturalKey);
-			// 아예 새 업체인 경우
-			if (oldCompany == null) {
-				Company company = item.toCompany();
-				company.updateCoordinatesUpdateRequired(true);
-				savedCompanies.add(company);
+			var existing = pubDataMap.get(naturalKey);
+			if (existing == null) {
+				pubDataMap.put(naturalKey, item);
 				continue;
 			}
-			if (!requiresUpdate(item, oldCompany)) {
-				continue;
-			}
-			oldCompany.updateCoordinatesUpdateRequired(!Objects.equals(item.cpAddr(), oldCompany.getSourceAddress()));
-			oldCompany.updateWithoutCoordinates(
-					item.cpSanum(), item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(),
-					item.cpCeoname(), item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(),
-					item.cpInfo(), item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
-			savedCompanies.add(oldCompany);
+			pubDataMap.put(naturalKey, isNewer(item.cpSidate(), existing.cpSidate()) ? item : existing);
 		}
-		return CompanySyncResult.successful(savedCompanies, pubDataNaturalKeys);
+		List<Company> dbCompanies = companyRepository.findAllMatchingNameAndAddress(pubDataMap.keySet());
+		Map<Company.NaturalKey, Company> dbCompanyMap = dbCompanies.stream()
+				.collect(Collectors.toMap(Company::naturalKey, Function.identity()));
+		Map<Company.NaturalKey, Company> newOrUpdatedCompanyMap = new HashMap<>();
+		for (var entry : pubDataMap.entrySet()) {
+			Company.NaturalKey naturalKey = entry.getKey();
+			var item = entry.getValue();
+			Company dbCompany = dbCompanyMap.get(naturalKey);
+			// 아예 새 업체인 경우
+			if (dbCompany == null) {
+				Company newCompany = item.toCompany();
+				newCompany.updateCoordinatesUpdateRequired(true);
+				newOrUpdatedCompanyMap.put(naturalKey, newCompany);
+				continue;
+			}
+			// 기존 업체인 경우
+			if (!requiresUpdate(item, dbCompany)) {
+				continue;
+			}
+			if (!isNewer(item.cpSidate(), dbCompany.getBeginDate())) {
+				continue;
+			}
+			updateExistingCompany(item, dbCompany);
+			newOrUpdatedCompanyMap.put(naturalKey, dbCompany);
+		}
+		return CompanySyncResult.successful(newOrUpdatedCompanyMap, pubDataMap.keySet());
+	}
+
+	private boolean isNewer(String newDate, String existingDate) {
+		LocalDate newLocalDate;
+		try {
+			newLocalDate = LocalDate.parse(newDate);
+		} catch (Exception ignored) {
+			newLocalDate = LocalDate.MIN;
+		}
+		LocalDate existingLocalDate;
+		try {
+			existingLocalDate = LocalDate.parse(existingDate);
+		} catch (Exception e) {
+			existingLocalDate = LocalDate.MIN;
+		}
+		if (LocalDate.MIN.equals(newLocalDate) && LocalDate.MIN.equals(existingLocalDate)) {
+			return true;
+		}
+		return newLocalDate.isAfter(existingLocalDate);
+	}
+
+	private void updateExistingCompany(BusanPublicDataResponse.Body.Item item, Company dbCompany) {
+		dbCompany.updateCoordinatesUpdateRequired(!Objects.equals(item.cpAddr(), dbCompany.getSourceAddress()));
+		dbCompany.updateWithoutCoordinates(
+				item.cpSanum(), item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(),
+				item.cpCeoname(), item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(),
+				item.cpInfo(), item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
 	}
 
 	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(String address) {
@@ -234,21 +258,24 @@ public class CompanySyncBatchService {
 	private static class CompanySyncResult {
 
 		private final boolean successful;
-		private final List<Company> savedCompanies;
-		private final Set<Company.NaturalKey> pubDataNameAddressPairs;
+		private final Map<Company.NaturalKey, Company> newOrUpdatedCompanyMap;
+		private final Set<Company.NaturalKey> pubDataNaturalKeys;
 
-		private CompanySyncResult(boolean successful, List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs) {
+		private CompanySyncResult(
+				boolean successful, Map<Company.NaturalKey, Company> newOrUpdatedCompanyMap,
+				Set<Company.NaturalKey> pubDataNaturalKeys) {
 			this.successful = successful;
-			this.savedCompanies = savedCompanies;
-			this.pubDataNameAddressPairs = pubDataNameAddressPairs;
+			this.newOrUpdatedCompanyMap = newOrUpdatedCompanyMap;
+			this.pubDataNaturalKeys = pubDataNaturalKeys;
 		}
 
-		private static CompanySyncResult successful(List<Company> savedCompanies, Set<Company.NaturalKey> pubDataNameAddressPairs) {
-			return new CompanySyncResult(true, savedCompanies, pubDataNameAddressPairs);
+		private static CompanySyncResult successful(
+				Map<Company.NaturalKey, Company> newOrUpdatedCompanyMap, Set<Company.NaturalKey> pubDataNaturalKeys) {
+			return new CompanySyncResult(true, newOrUpdatedCompanyMap, pubDataNaturalKeys);
 		}
 
 		private static CompanySyncResult failed() {
-			return new CompanySyncResult(false, Collections.emptyList(), Collections.emptySet());
+			return new CompanySyncResult(false, Collections.emptyMap(), Collections.emptySet());
 		}
 
 	}
