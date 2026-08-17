@@ -80,6 +80,7 @@ jobs:
           docker run -d \
             --name dagagayo-dev-be \
             --network dagagayo-dev \
+            --restart unless-stopped \
             -p ${{ secrets.BACKEND_DEV_PORT }}:${{ secrets.BACKEND_DEV_PORT }} \
             -e "USE_PROFILE=dev,secret" \
             5almiakki/dagagayo-be:${{ github.sha }}
