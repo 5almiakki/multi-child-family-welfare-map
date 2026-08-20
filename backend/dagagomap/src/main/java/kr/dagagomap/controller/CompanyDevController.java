@@ -31,7 +31,7 @@ public class CompanyDevController {
 
 	@PatchMapping("/trigger-address-to-coords-conversion")
 	public ResponseEntity<Void> triggerAddressToCoordsConversion(
-			@RequestParam(defaultValue = "0") int count) {
+			@RequestParam(required = false) Integer count) {
 		companyService.triggerAddressToCoordsConversion(count);
 		return ResponseEntity.noContent().build();
 	}
