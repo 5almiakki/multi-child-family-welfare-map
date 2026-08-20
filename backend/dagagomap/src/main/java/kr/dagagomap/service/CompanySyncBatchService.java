@@ -52,7 +52,6 @@ public class CompanySyncBatchService {
 
 	/**
 	 * 부산시 공공데이터 API의 가족사랑카드 참여 업체 정보를 DB와 동기화한다.
-	 * <br>
 	 * 공공데이터에 존재하는 업체는 신규 등록하거나 변경된 정보를 반영하고,
 	 * 더 이상 공공데이터에 없는 업체는 제거한다.
 	 * 주소가 변경된 업체는 Kakao Local API로 좌표를 조회해 반영한다.
@@ -195,19 +194,6 @@ public class CompanySyncBatchService {
 				item.cpInfo(), item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
 	}
 
-	private AddressToCoordinatesConversionResponse fetchCoordinatesAsync(String address) {
-		var response = kakaoLocalClient.convertAddressToCoordinates(address);
-		// TODO 좌표로 변환 못 한 경우 다른 방법으로 재시도
-		return response;
-	}
-
-	/**
-	 * 업체 엔티티가 갱신되어야 하는지를 반환한다.
-	 *
-	 * @param item 공공데이터에서 가져온 업체 정보
-	 * @param oldCompany <code>item</code>과 사업자번호가 같은 업체 엔티티
-	 * @return 업체 엔티티가 갱신되어야 하는지
-	 */
 	private boolean requiresUpdate(BusanPublicDataResponse.Body.Item item, Company oldCompany) {
 		return !Objects.equals(item.cpCompname(), oldCompany.getName())
 				|| !Objects.equals(item.cpHome(), oldCompany.getHomepageUrl())
@@ -240,14 +226,25 @@ public class CompanySyncBatchService {
 		List<CompletableFuture<Void>> futures = new ArrayList<>(companies.size());
 		companies.forEach(company -> {
 			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-				AddressToCoordinatesConversionResponse response = fetchCoordinatesAsync(company.getSourceAddress());
-				updateCoordinatesIfExists(company, response);
+				try {
+					AddressToCoordinatesConversionResponse response = fetchCoordinates(company.getSourceAddress());
+					updateCoordinatesIfExists(company, response);
+				} catch (Exception e) {
+					log.warn("Failed to update coordinates for company [{}]. Skipping this company", company.getName());
+				}
 			}, asyncTaskExecutor);
 			futures.add(future);
 		});
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-		companies.forEach(company -> company.updateCoordinatesUpdateRequired(false));
-		companyRepository.saveAll(companies);
+		if (!companies.isEmpty()) {
+			companyRepository.saveAll(companies);
+		}
+	}
+
+	private AddressToCoordinatesConversionResponse fetchCoordinates(String address) {
+		var response = kakaoLocalClient.convertAddressToCoordinates(address);
+		// TODO 좌표로 변환 못 한 경우 다른 방법으로 재시도
+		return response;
 	}
 
 	private void updateCoordinatesIfExists(Company company, AddressToCoordinatesConversionResponse response) {
@@ -256,11 +253,17 @@ public class CompanySyncBatchService {
 			return;
 		}
 		AddressToCoordinatesConversionResponse.Document[] documents = response.documents();
-		if (documents == null || documents.length == 0) {
+		if (documents == null) {
 			log.warn("Company [{}] has no coordinate data due to API failure.", company.getName());
 			return;
 		}
+		if (documents.length == 0) {
+			log.warn("Company [{}] has no coordinate data due to invalid address.", company.getName());
+			company.updateCoordinatesUpdateRequired(false);
+			return;
+		}
 		company.updateCoordinates(Double.valueOf(documents[0].y()), Double.valueOf(documents[0].x()));
+		company.updateCoordinatesUpdateRequired(false);
 	}
 
 	@Getter
