@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RequiredArgsConstructor
 @Controller
@@ -25,6 +26,13 @@ public class CompanyDevController {
 	@PatchMapping("/trigger-save-pub-data-to-db")
 	public ResponseEntity<Void> triggerSavePubDataToDb() {
 		companyService.triggerSavePubDataToDb();
+		return ResponseEntity.noContent().build();
+	}
+
+	@PatchMapping("/trigger-address-to-coords-conversion")
+	public ResponseEntity<Void> triggerAddressToCoordsConversion(
+			@RequestParam(defaultValue = "0") int count) {
+		companyService.triggerAddressToCoordsConversion(count);
 		return ResponseEntity.noContent().build();
 	}
 
