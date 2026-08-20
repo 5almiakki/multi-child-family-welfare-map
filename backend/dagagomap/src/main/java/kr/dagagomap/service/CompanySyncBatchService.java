@@ -1,7 +1,6 @@
 package kr.dagagomap.service;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -9,6 +8,7 @@ import java.util.stream.Collectors;
 
 import lombok.Getter;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.data.domain.Limit;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -227,7 +227,16 @@ public class CompanySyncBatchService {
 	}
 
 	public void updateCoordinatesWhereRequired() {
-		List<Company> companies = companyRepository.findAllByCoordinatesUpdateRequired(true);
+		List<Company> companies = companyRepository.findByCoordinatesUpdateRequired(true, Limit.unlimited());
+		updateCoordinatesWhereRequiredAndSave(companies);
+	}
+
+	public void updateCoordinatesWhereRequired(int count) {
+		List<Company> companies = companyRepository.findByCoordinatesUpdateRequired(true, Limit.of(count));
+		updateCoordinatesWhereRequiredAndSave(companies);
+	}
+
+	private void updateCoordinatesWhereRequiredAndSave(Collection<Company> companies) {
 		List<CompletableFuture<Void>> futures = new ArrayList<>(companies.size());
 		companies.forEach(company -> {
 			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {

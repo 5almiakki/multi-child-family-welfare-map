@@ -39,4 +39,8 @@ public class CompanyService {
 		companySyncBatchService.syncCompaniesWithPublicData();
 	}
 
+	public void triggerAddressToCoordsConversion(int count) {
+		companySyncBatchService.updateCoordinatesWhereRequired(count);
+	}
+
 }
