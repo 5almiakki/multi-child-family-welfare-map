@@ -16,10 +16,7 @@ services:
 
     networks:
       - dagagayo-dev
-      - dagagayo-prod
 
 networks:
   dagagayo-dev:
-    external: true
-  dagagayo-prod:
     external: true
