@@ -45,13 +45,13 @@ class CompanyAutocompleteServiceTest {
 	}
 
 	@Test
-	@DisplayName("키워드를 포함하는 업체명 목록을 반환한다")
+	@DisplayName("키워드로 시작하는 업체명 목록을 반환한다")
 	void returnsNamesContainingKeyword() {
 		List<String> result = companyService.autocompleteNames("카페", 10);
 
 		assertThat(result)
-				.hasSize(3)
-				.containsExactlyInAnyOrder("해운대 카페", "광안 카페", "카페 드롭탑");
+				.hasSize(1)
+				.containsExactlyInAnyOrder("카페 드롭탑");
 	}
 
 	@Test
