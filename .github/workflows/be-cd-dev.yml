@@ -18,17 +18,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Create application-secret.yml
-      run: |
-        # Make directory if does not exist
-        mkdir -p src/main/resources
-
-        cat << 'EOF' > src/main/resources/application-secret.yml
-        ${{ secrets.BACKEND_DEV_SECRET }}
-        EOF
-
-        ls -al src/main/resources
-
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -82,6 +71,7 @@ jobs:
             --network dagagayo-dev \
             --restart unless-stopped \
             -e "USE_PROFILE=dev,secret" \
+            -v /opt/dagagayo/dev/be/application-secret.yml:/app/config/application-secret.yml:ro
             5almiakki/dagagayo-be:${{ github.sha }}
           docker image prune -af
         EOF
