@@ -76,7 +76,7 @@ public class CompanyRepositoryCustomImpl implements CompanyRepositoryCustom {
 		}
 		return queryFactory.selectDistinct(company.name)
 				.from(company)
-				.where(company.name.contains(keyword))
+				.where(company.name.startsWith(keyword))
 				.orderBy(company.name.asc())
 				.limit(limit)
 				.fetch();
