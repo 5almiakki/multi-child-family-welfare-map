@@ -81,8 +81,8 @@ jobs:
             --name dagagayo-dev-be \
             --network dagagayo-dev \
             --restart unless-stopped \
-            -e "USE_PROFILE=dev,secret" \
-            -v /opt/dagagayo/dev/be/application-secret.yml:/app/config/application-secret.yml:ro \
+            -e "SPRING_PROFILES_ACTIVE=dev" \
+            -v "/opt/dagagayo/dev/be/application-secret.yml:/app/config/application-secret.yml:ro" \
             5almiakki/dagagayo-be:${{ github.sha }}
           docker image prune -af
         EOF
