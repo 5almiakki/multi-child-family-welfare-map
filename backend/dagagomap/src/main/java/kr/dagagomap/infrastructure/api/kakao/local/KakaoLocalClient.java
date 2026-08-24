@@ -56,7 +56,12 @@ public class KakaoLocalClient {
 					.retrieve()
 					.onStatus(HttpStatusCode::is4xxClientError,
 							(req, res) -> handle4xxClientError(res, addressToCoordinatesConversionQuotaGuard))
-					.onStatus(HttpStatusCode::isError, (req, res) -> logErrorAndThrow(res))
+					.onStatus(HttpStatusCode::isError, (req, res) -> {
+						throw new KakaoApiException("Kakao API Error: "
+								+ "Status=" + res.getStatusCode()
+								+ ", Headers=" + res.getHeaders()
+								+ ", Body=" + new String(res.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+					})
 					.body(AddressToCoordinatesConversionResponse.class);
 			logDebugIfNotNull(response);
 			return response;
@@ -73,7 +78,12 @@ public class KakaoLocalClient {
 					.retrieve()
 					.onStatus(HttpStatusCode::is4xxClientError,
 							(req, res) -> handle4xxClientError(res, placeSearchByKeywordQuotaGuard))
-					.onStatus(HttpStatusCode::isError, (req, res) -> logErrorAndThrow(res))
+					.onStatus(HttpStatusCode::isError, (req, res) -> {
+						throw new KakaoApiException("Kakao API Error: "
+								+ "Status=" + res.getStatusCode()
+								+ ", Headers=" + res.getHeaders()
+								+ ", Body=" + new String(res.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+					})
 					.body(PlaceSearchByKeywordResponse.class);
 			logDebugIfNotNull(response);
 			return response;
@@ -125,7 +135,10 @@ public class KakaoLocalClient {
 				break;
 			default:
 		}
-		logErrorAndThrow(res, bodyBytes);
+		throw new KakaoApiException("Kakao API Error: "
+				+ "Status=" + res.getStatusCode()
+				+ ", Headers=" + res.getHeaders()
+				+ ", Body=" + new String(res.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
 	}
 
 	private void handle400Error(byte[] bodyBytes, QuotaGuard quotaGuard) {
@@ -138,17 +151,6 @@ public class KakaoLocalClient {
 				default:
 			}
 		}
-	}
-
-	private void logErrorAndThrow(ClientHttpResponse res) throws IOException {
-		logErrorAndThrow(res, res.getBody().readAllBytes());
-	}
-
-	private void logErrorAndThrow(ClientHttpResponse res, byte[] bodyBytes) throws IOException {
-		String responseBody = new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8);
-		log.error("Kakao API Error: Status={}, Headers={}, Body={}",
-				res.getStatusCode(), res.getHeaders(), responseBody);
-		throw new KakaoApiException("Kakao API Error: " + responseBody);
 	}
 
 	private static final class QuotaGuard {
