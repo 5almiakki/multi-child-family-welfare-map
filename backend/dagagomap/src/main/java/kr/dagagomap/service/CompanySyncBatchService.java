@@ -230,7 +230,9 @@ public class CompanySyncBatchService {
 					AddressToCoordinatesConversionResponse response = fetchCoordinates(company.getSourceAddress());
 					updateCoordinatesIfExists(company, response);
 				} catch (Exception e) {
-					log.warn("Failed to update coordinates for company [{}]. Skipping this company", company.getName());
+					log.warn(
+							"Failed to update coordinates for company [{}]. Skipping this company. {}",
+							company.getName(), e.getMessage());
 				}
 			}, asyncTaskExecutor);
 			futures.add(future);
