@@ -6,13 +6,9 @@ const props = defineProps({
 
 <template>
   <h5>{{ searchResultItem.name }}</h5>
-  {{ searchResultItem.homepageUrl }}
-  <br>
-  {{ searchResultItem.normalizedAddress }}
-  <br>
-  {{ searchResultItem.tel }}
-  <br>
-  {{ searchResultItem.description }}
-  <br>
-  {{ searchResultItem.benefit }}
+  <p v-if="searchResultItem.tel || searchResultItem.sourceAddress">
+    <span v-if="searchResultItem.tel">{{ searchResultItem.tel }}<br></span>
+    {{ searchResultItem.sourceAddress }}
+  </p>
+  <p>{{ searchResultItem.benefit }}</p>
 </template>
