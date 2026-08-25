@@ -46,7 +46,11 @@ public class KakaoLocalClient {
 		this.objectMapper = objectMapper;
 	}
 
-	@Retryable(excludes = KakaoApiQuotaExceededException.class)
+	@Retryable(
+			excludes = KakaoApiQuotaExceededException.class,
+			maxRetries = 1L,
+			delay = 2L,
+			jitter = 1000L)
 	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:1}")
 	public AddressToCoordinatesConversionResponse convertAddressToCoordinates(String address) {
 		String uri = "/v2/local/search/address.JSON?query=" + address;
@@ -68,7 +72,12 @@ public class KakaoLocalClient {
 		});
 	}
 
-	@Retryable(excludes = KakaoApiQuotaExceededException.class)
+
+	@Retryable(
+			excludes = KakaoApiQuotaExceededException.class,
+			maxRetries = 1L,
+			delay = 2L,
+			jitter = 1000L)
 	@ConcurrencyLimit(limitString = "${custom.kakao.local.concurrency-limit:1}")
 	public PlaceSearchByKeywordResponse searchPlaceByKeyword(String keyword) {
 		String uri = "/v2/local/search/keyword.JSON?query=" + keyword;
