@@ -124,7 +124,7 @@ watch(selectedCategories, searchImmediately, { deep: true });
           button
           button-variant="light"
           size="sm"
-          class="m-1 shadow-sm text-nowrap"
+          class="m-1 shadow-sm text-nowrap flex-shrink-0"
         >
           {{ category }}
         </BFormCheckbox>
@@ -185,8 +185,10 @@ watch(selectedCategories, searchImmediately, { deep: true });
 
 .button-group {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 5px;
   margin-top: 10px;
+  width: 100%;
+  max-width: 100%;
 }
 </style>
