@@ -1,6 +1,7 @@
 <script setup>
 import { useSearchResultStore } from '@/stores/searchResult';
-import { ref, watch } from 'vue';
+import { ref, watch, toRef } from 'vue';
+import { useVirtualList } from '@/composables/useVirtualList';
 import SearchResultItem from './SearchResultItem.vue';
 
 const props = defineProps({
@@ -17,12 +18,26 @@ const SHEET_HEIGHT = {
   MEDIUM: 45,
   HIGH: 85
 };
+
+const ITEM_HEIGHT = 120;
+
 const sheetHeightPercent = ref(SHEET_HEIGHT.CLOSED);
 const isDragging = ref(false);
 const hasSearched = ref(false);
 
 let startY = 0;
 let startHeight = 0;
+
+const {
+  containerRef,
+  visibleItems,
+  totalHeight,
+  offsetY,
+  onScroll
+} = useVirtualList(toRef(searchResultStore, 'searchResults'), {
+  itemHeight: ITEM_HEIGHT,
+  buffer: 6
+});
 
 watch(
   () => props.modelValue,
@@ -52,8 +67,9 @@ const onPointerMove = (e) => {
   const deltaY = startY - e.clientY;
   const deltaPercent = (deltaY / window.innerHeight) * 100;
   sheetHeightPercent.value = Math.min(
-      Math.max(startHeight + deltaPercent, SHEET_HEIGHT.LOW),
-      SHEET_HEIGHT.HIGH);
+    Math.max(startHeight + deltaPercent, SHEET_HEIGHT.LOW),
+    SHEET_HEIGHT.HIGH
+  );
 };
 
 const onPointerUp = () => {
@@ -83,7 +99,7 @@ const onPointerUp = () => {
   >
     <div class="sheet-handle-bar" @pointerdown="onPointerDown">
       <div class="handle-pill"></div>
-      <div class="d-flex justify-content-between align-items-center w-100 px-3 py-1">
+      <div class="w-100 px-3 py-1">
         <span class="sheet-title">
           검색 결과
           <BBadge variant="info">
@@ -92,13 +108,26 @@ const onPointerUp = () => {
         </span>
       </div>
     </div>
-    <div class="sheet-content">
+
+    <div
+      ref="containerRef"
+      class="sheet-content"
+      @scroll.passive="onScroll"
+    >
       <div v-if="searchResultStore.searchResults.length === 0" class="text-center py-4 text-muted">
         검색 결과가 없습니다.
       </div>
-      <div v-for="(searchResult, index) in searchResultStore.searchResults" :key="index">
-        <SearchResultItem :search-result-item="searchResult" />
-        <hr v-if="index < searchResultStore.searchResults.length - 1" class="my-4" />
+      <div v-else :style="{ height: `${totalHeight}px`, position: 'relative' }">
+        <div :style="{ transform: `translateY(${offsetY}px)` }">
+          <div
+            v-for="{ data, index } in visibleItems"
+            :key="index"
+            class="virtual-item"
+            :style="{ height: `${ITEM_HEIGHT}px` }"
+          >
+            <SearchResultItem :search-result-item="data" />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -120,9 +149,11 @@ const onPointerUp = () => {
   transition: height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   touch-action: none;
 }
+
 .bottom-sheet.dragging {
   transition: none;
 }
+
 .sheet-handle-bar {
   padding: 8px 0 4px;
   display: flex;
@@ -134,9 +165,11 @@ const onPointerUp = () => {
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
+
 .sheet-handle-bar:active {
   cursor: grabbing;
 }
+
 .handle-pill {
   width: 36px;
   height: 4px;
@@ -144,13 +177,21 @@ const onPointerUp = () => {
   border-radius: 2px;
   margin-bottom: 6px;
 }
+
 .sheet-title {
   font-weight: 600;
 }
+
 .sheet-content {
   flex: 1;
   overflow-y: auto;
   padding: 0 16px 20px;
   -webkit-overflow-scrolling: touch;
+}
+
+.virtual-item {
+  box-sizing: border-box;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f3f5;
 }
 </style>
