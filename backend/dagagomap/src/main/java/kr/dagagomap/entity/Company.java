@@ -35,7 +35,8 @@ public class Company {
 	private String emailFlag; // 이메일 수신여부
 	@Column(columnDefinition = "TEXT")
 	private String description; // 회사소개
-	private String benefit; // 우대 내용
+	private String sourceBenefit; // 원본 우대 내용
+	private String normalizedBenefit; // 불필요 문자열 제거 등 가공한 우대 내용
 	private String usageStatus; // 사용여부
 	private String img; // 첨부파일
 	private String webFlag; // 승인여부
@@ -47,7 +48,7 @@ public class Company {
 	public Company(
 			String taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
 			String sourceAddress, String normalizedAddress, String tel, String email, String emailFlag,
-			String description, String benefit, String usageStatus, String img, String webFlag) {
+			String description, String sourceBenefit, String normalizedBenefit, String usageStatus, String img, String webFlag) {
 		this.taxId = taxId;
 		this.name = name;
 		this.homepageUrl = homepageUrl;
@@ -61,7 +62,8 @@ public class Company {
 		this.email = email;
 		this.emailFlag = emailFlag;
 		this.description = description;
-		this.benefit = benefit;
+		this.sourceBenefit = sourceBenefit;
+		this.normalizedBenefit = normalizedBenefit;
 		this.usageStatus = usageStatus;
 		this.img = img;
 		this.webFlag = webFlag;
@@ -74,8 +76,8 @@ public class Company {
 
 	public void updateWithoutCoordinates(
 			String taxId, String name, String homepageUrl, String category, String gu, String ceoName, String beginDate,
-			String sourceAddress, String tel, String email, String emailFlag, String description, String benefit,
-			String usageStatus, String img, String webFlag) {
+			String sourceAddress, String tel, String email, String emailFlag, String description, String sourceBenefit,
+			String normalizedBenefit, String usageStatus, String img, String webFlag) {
 		this.taxId = taxId;
 		this.name = name;
 		this.homepageUrl = homepageUrl;
@@ -88,7 +90,8 @@ public class Company {
 		this.email = email;
 		this.emailFlag = emailFlag;
 		this.description = description;
-		this.benefit = benefit;
+		this.sourceBenefit = sourceBenefit;
+		this.normalizedBenefit = normalizedBenefit;
 		this.usageStatus = usageStatus;
 		this.img = img;
 		this.webFlag = webFlag;

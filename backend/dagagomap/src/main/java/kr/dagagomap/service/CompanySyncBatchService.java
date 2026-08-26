@@ -192,9 +192,9 @@ public class CompanySyncBatchService {
 	private void updateExistingCompany(BusanPublicDataResponse.Body.Item item, Company dbCompany) {
 		dbCompany.updateCoordinatesUpdateRequired(!Objects.equals(item.cpAddr(), dbCompany.getSourceAddress()));
 		dbCompany.updateWithoutCoordinates(
-				item.cpSanum(), item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(),
-				item.cpCeoname(), item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(),
-				item.cpInfo(), item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
+				item.cpSanum(), item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
+				item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
+				item.cpWoo(), item.cpWoo().replace("!R!!N!", ""), item.cpState(), item.cpImg(), item.cpWebflag());
 	}
 
 	private boolean requiresUpdate(BusanPublicDataResponse.Body.Item item, Company oldCompany) {
@@ -209,7 +209,7 @@ public class CompanySyncBatchService {
 				|| !Objects.equals(item.cpEmail(), oldCompany.getEmail())
 				|| !Objects.equals(item.cpEmailflag(), oldCompany.getEmailFlag())
 				|| !Objects.equals(item.cpInfo(), oldCompany.getDescription())
-				|| !Objects.equals(item.cpWoo(), oldCompany.getBenefit())
+				|| !Objects.equals(item.cpWoo(), oldCompany.getSourceBenefit())
 				|| !Objects.equals(item.cpState(), oldCompany.getUsageStatus())
 				|| !Objects.equals(item.cpImg(), oldCompany.getImg())
 				|| !Objects.equals(item.cpWebflag(), oldCompany.getWebFlag());

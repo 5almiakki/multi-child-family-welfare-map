@@ -118,7 +118,7 @@ public record BusanPublicDataResponse(
 						.email(cpEmail)
 						.emailFlag(cpEmailflag)
 						.description(cpInfo)
-						.benefit(cpWoo)
+						.sourceBenefit(cpWoo)
 						.usageStatus(cpState)
 						.img(cpImg)
 						.webFlag(cpWebflag)
