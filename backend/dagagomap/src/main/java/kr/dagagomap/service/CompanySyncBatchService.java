@@ -164,7 +164,7 @@ public class CompanySyncBatchService {
 			if (!isNewer(item.cpSidate(), dbCompany.getBeginDate())) {
 				continue;
 			}
-			updateExistingCompany(item, dbCompany);
+			item.updateCompany(dbCompany);
 			newOrUpdatedCompanyMap.put(naturalKey, dbCompany);
 		}
 		return CompanySyncResult.successful(newOrUpdatedCompanyMap, pubDataMap.keySet());
@@ -187,14 +187,6 @@ public class CompanySyncBatchService {
 			return true;
 		}
 		return newLocalDate.isAfter(existingLocalDate);
-	}
-
-	private void updateExistingCompany(BusanPublicDataResponse.Body.Item item, Company dbCompany) {
-		dbCompany.updateCoordinatesUpdateRequired(!Objects.equals(item.cpAddr(), dbCompany.getSourceAddress()));
-		dbCompany.updateWithoutCoordinates(
-				item.cpSanum(), item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(), item.cpCeoname(),
-				item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(), item.cpInfo(),
-				item.cpWoo(), item.cpWoo().replace("!R!!N!", ""), item.cpState(), item.cpImg(), item.cpWebflag());
 	}
 
 	private boolean requiresUpdate(BusanPublicDataResponse.Body.Item item, Company oldCompany) {
