@@ -3,6 +3,9 @@ package kr.dagagomap.service;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -225,6 +228,8 @@ public class CompanySyncBatchService {
 	private void updateCoordinatesWhereRequiredAndSave(Collection<Company> companies) {
 		List<CompletableFuture<Void>> futures = new ArrayList<>(companies.size());
 		companies.forEach(company -> {
+			Executor jitterExecutor = CompletableFuture.delayedExecutor(
+					ThreadLocalRandom.current().nextLong(2000L), TimeUnit.MILLISECONDS, asyncTaskExecutor);
 			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
 				try {
 					AddressToCoordinatesConversionResponse response = fetchCoordinates(company.getSourceAddress());
@@ -234,7 +239,7 @@ public class CompanySyncBatchService {
 							"Failed to update coordinates for company [{}]. Skipping this company. {}",
 							company.getName(), e.getMessage());
 				}
-			}, asyncTaskExecutor);
+			}, jitterExecutor);
 			futures.add(future);
 		});
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
