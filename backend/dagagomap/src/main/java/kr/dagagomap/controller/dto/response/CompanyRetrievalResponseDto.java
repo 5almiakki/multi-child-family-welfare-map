@@ -40,7 +40,7 @@ public class CompanyRetrievalResponseDto {
 		this.email = company.getEmail();
 		this.emailFlag = company.getEmailFlag();
 		this.description = company.getDescription();
-		this.benefit = company.getBenefit();
+		this.benefit = company.getNormalizedBenefit();
 		this.usageStatus = company.getUsageStatus();
 		this.img = company.getImg();
 		this.webFlag = company.getWebFlag();

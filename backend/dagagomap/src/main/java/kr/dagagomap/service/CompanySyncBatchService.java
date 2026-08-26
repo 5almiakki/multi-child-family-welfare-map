@@ -164,7 +164,7 @@ public class CompanySyncBatchService {
 			if (!isNewer(item.cpSidate(), dbCompany.getBeginDate())) {
 				continue;
 			}
-			updateExistingCompany(item, dbCompany);
+			item.updateCompany(dbCompany);
 			newOrUpdatedCompanyMap.put(naturalKey, dbCompany);
 		}
 		return CompanySyncResult.successful(newOrUpdatedCompanyMap, pubDataMap.keySet());
@@ -189,14 +189,6 @@ public class CompanySyncBatchService {
 		return newLocalDate.isAfter(existingLocalDate);
 	}
 
-	private void updateExistingCompany(BusanPublicDataResponse.Body.Item item, Company dbCompany) {
-		dbCompany.updateCoordinatesUpdateRequired(!Objects.equals(item.cpAddr(), dbCompany.getSourceAddress()));
-		dbCompany.updateWithoutCoordinates(
-				item.cpSanum(), item.cpCompname(), item.cpHome(), item.cpClass(), item.cpHgu(),
-				item.cpCeoname(), item.cpSidate(), item.cpAddr(), item.cpTel(), item.cpEmail(), item.cpEmailflag(),
-				item.cpInfo(), item.cpWoo(), item.cpState(), item.cpImg(), item.cpWebflag());
-	}
-
 	private boolean requiresUpdate(BusanPublicDataResponse.Body.Item item, Company oldCompany) {
 		return !Objects.equals(item.cpCompname(), oldCompany.getName())
 				|| !Objects.equals(item.cpHome(), oldCompany.getHomepageUrl())
@@ -209,7 +201,7 @@ public class CompanySyncBatchService {
 				|| !Objects.equals(item.cpEmail(), oldCompany.getEmail())
 				|| !Objects.equals(item.cpEmailflag(), oldCompany.getEmailFlag())
 				|| !Objects.equals(item.cpInfo(), oldCompany.getDescription())
-				|| !Objects.equals(item.cpWoo(), oldCompany.getBenefit())
+				|| !Objects.equals(item.cpWoo(), oldCompany.getSourceBenefit())
 				|| !Objects.equals(item.cpState(), oldCompany.getUsageStatus())
 				|| !Objects.equals(item.cpImg(), oldCompany.getImg())
 				|| !Objects.equals(item.cpWebflag(), oldCompany.getWebFlag());

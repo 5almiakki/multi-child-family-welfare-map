@@ -3,6 +3,8 @@ package kr.dagagomap.infrastructure.api.publicdata.busan.dto;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import kr.dagagomap.entity.Company;
 
+import java.util.Objects;
+
 /**
  * 참여업체명, 우대 내용 등 부산광역시 가족사랑카드참여업체 현황 조회 정보
  *
@@ -118,7 +120,8 @@ public record BusanPublicDataResponse(
 						.email(cpEmail)
 						.emailFlag(cpEmailflag)
 						.description(cpInfo)
-						.benefit(cpWoo)
+						.sourceBenefit(cpWoo)
+						.normalizedBenefit(getNormalizedCpWoo())
 						.usageStatus(cpState)
 						.img(cpImg)
 						.webFlag(cpWebflag)
@@ -127,6 +130,17 @@ public record BusanPublicDataResponse(
 
 			public Company.NaturalKey toNaturalKey() {
 				return new Company.NaturalKey(cpCompname, cpAddr);
+			}
+
+			private String getNormalizedCpWoo() {
+				return cpWoo == null ? null : cpWoo.replace("!R!!N!", " ").strip();
+			}
+
+			public void updateCompany(Company company) {
+				company.updateCoordinatesUpdateRequired(!Objects.equals(cpAddr, company.getSourceAddress()));
+				company.updateWithoutCoordinates(
+						cpSanum, cpCompname, cpHome, cpClass, cpHgu, cpCeoname, cpSidate, cpAddr, cpTel, cpEmail,
+						cpEmailflag, cpInfo, cpWoo, getNormalizedCpWoo(), cpState, cpImg, cpWebflag);
 			}
 
 		}

@@ -57,7 +57,7 @@ public final class PublicDataTestFixtures {
 				.email("old@example.com")
 				.emailFlag("N")
 				.description("기존 소개")
-				.benefit("기존 우대")
+				.sourceBenefit("기존 우대")
 				.usageStatus("Y")
 				.img("old.png")
 				.webFlag("Y")
