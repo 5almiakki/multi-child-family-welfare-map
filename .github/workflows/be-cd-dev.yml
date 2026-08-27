@@ -3,6 +3,8 @@ name: Backend CD (dev)
 on:
   push:
     branches: [ "develop" ]
+    paths:
+      - 'backend/**'
 
   workflow_dispatch:
 
