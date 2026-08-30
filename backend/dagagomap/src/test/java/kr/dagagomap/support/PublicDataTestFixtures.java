@@ -20,6 +20,11 @@ public final class PublicDataTestFixtures {
 	}
 
 	public static BusanPublicDataResponse.Body.Item item(String taxId, String name, String address, String beginDate) {
+		return item(taxId, name, address, beginDate, "051-000-0000");
+	}
+
+	public static BusanPublicDataResponse.Body.Item item(
+			String taxId, String name, String address, String beginDate, String tel) {
 		return new BusanPublicDataResponse.Body.Item(
 				name,
 				"https://example.com",
@@ -29,7 +34,7 @@ public final class PublicDataTestFixtures {
 				taxId,
 				beginDate,
 				address,
-				"051-000-0000",
+				tel,
 				"test@example.com",
 				"Y",
 				"회사소개",
@@ -44,6 +49,10 @@ public final class PublicDataTestFixtures {
 	}
 
 	public static Company existingCompany(String taxId, String name, String address, String beginDate) {
+		return existingCompany(taxId, name, address, beginDate, "051-111-1111");
+	}
+
+	public static Company existingCompany(String taxId, String name, String address, String beginDate, String tel) {
 		return Company.builder()
 				.taxId(taxId)
 				.name(name)
@@ -53,7 +62,7 @@ public final class PublicDataTestFixtures {
 				.ceoName("대표자")
 				.beginDate(beginDate)
 				.sourceAddress(address)
-				.tel("051-111-1111")
+				.tel(tel)
 				.email("old@example.com")
 				.emailFlag("N")
 				.description("기존 소개")
