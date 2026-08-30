@@ -1,0 +1,30 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'frontend/**'
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    defaults:
+      run:
+        working-directory: frontend/multi-child-family-welfare-map
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create secrets
+      run: |
+        cat << 'EOF' > .env
+        ${{ secrets.FRONTEND_DEV_SECRET }}
+        EOF
+
+    - name: Build the Docker image
+      run: docker build --tag 5almiakki/dagagayo-fe:$(date +%s) .
