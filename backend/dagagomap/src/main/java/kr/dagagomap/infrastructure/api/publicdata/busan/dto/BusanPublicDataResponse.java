@@ -133,7 +133,7 @@ public record BusanPublicDataResponse(
 			}
 
 			private String getNormalizedCpWoo() {
-				return cpWoo == null ? null : cpWoo.replace("!R!!N!", " ").strip();
+				return cpWoo == null ? null : cpWoo.replaceAll("(?:\\Q!R!!N!\\E)+", " ").strip();
 			}
 
 			public void updateCompany(Company company) {
