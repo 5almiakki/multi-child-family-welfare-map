@@ -102,6 +102,36 @@ class CompanySyncBatchServiceTest {
 	}
 
 	@Test
+	@DisplayName("주소 이외 정보가 바뀐 업체는 좌표 갱신 필요 여부가 그대로다")
+	void hasSameCoordinatesUpdateRequiredWhenAddressUnchanged() {
+		Company company1 = existingCompany("1", "name1", "address1", "051-000-0000");
+		company1.updateCoordinatesUpdateRequired(true);
+		companyRepository.save(company1);
+		var item1 = item("1", "name1", "address1", "051-000-0000");
+		stubSinglePage(item1);
+
+		companySyncBatchService.syncCompanies();
+
+		Company result1 = companyRepository.findByNameAndSourceAddress("name1", "address1").orElseThrow();
+		assertThat(result1.getCoordinatesUpdateRequired())
+				.isTrue();
+
+		companyRepository.deleteAll();
+
+		Company company2 = existingCompany("2", "name2", "address2", "051-000-0002");
+		company2.updateCoordinatesUpdateRequired(false);
+		companyRepository.save(company2);
+		var item2 = item("2", "name2", "address2", "051-000-0003");
+		stubSinglePage(item2);
+
+		companySyncBatchService.syncCompanies();
+
+		Company result2 = companyRepository.findByNameAndSourceAddress("name2", "address2").orElseThrow();
+		assertThat(result2.getCoordinatesUpdateRequired())
+				.isFalse();
+	}
+
+	@Test
 	@DisplayName("변경되지 않은 기존 업체는 저장 대상에서 제외한다")
 	void skipsUnchangedCompanies() {
 		BusanPublicDataResponse.Body.Item sameItem = item("4040404040", "변경없음", "부산 해운대구 우동 3");
