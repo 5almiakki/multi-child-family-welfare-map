@@ -364,7 +364,7 @@ class CompanySyncBatchServiceTest {
 				.map(date -> item("1", name, address, date))
 				.toArray(BusanPublicDataResponse.Body.Item[]::new);
 		when(publicDataClient.getFamilyLoveCardInfo(1, 2))
-				.thenReturn(page(4, 1, 2, items));
+				.thenReturn(page(items.length, 1, 2, items));
 	}
 
 }
