@@ -4,6 +4,9 @@ spring:
       ddl-auto: none
 
 custom:
+  cors:
+    allowed-origins:
+      - https://api.dagagayo.kro.kr
   scheduler:
     company-update:
       cron: 0 0 3 ? * MON

@@ -4,6 +4,10 @@ spring:
       ddl-auto: update
 
 custom:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - https://dev.dagagayo.kro.kr
   scheduler:
     company-update:
       cron: 0 0 3 * * *
