@@ -1,9 +1,6 @@
 name: Frontend CI
 
 on:
-  push:
-    branches: [ "ci-cd/fe" ]
-
   pull_request:
     branches: [ "main", "develop" ]
     paths:

@@ -2,9 +2,9 @@ name: Frontend CD (dev)
 
 on:
   push:
-    branches: [ "develop", "ci-cd/fe" ]
-
-  workflow_dispatch:
+    branches: [ "develop" ]
+    paths:
+      - 'frontend/**'
 
 jobs:
   build:
