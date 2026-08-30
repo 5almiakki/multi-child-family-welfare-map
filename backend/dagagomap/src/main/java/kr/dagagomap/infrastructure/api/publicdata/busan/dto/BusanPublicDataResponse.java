@@ -137,7 +137,9 @@ public record BusanPublicDataResponse(
 			}
 
 			public void updateCompany(Company company) {
-				company.updateCoordinatesUpdateRequired(!Objects.equals(cpAddr, company.getSourceAddress()));
+				if (!Objects.equals(cpAddr, company.getSourceAddress())) {
+					company.updateCoordinatesUpdateRequired(true);
+				}
 				company.updateWithoutCoordinates(
 						cpSanum, cpCompname, cpHome, cpClass, cpHgu, cpCeoname, cpSidate, cpAddr, cpTel, cpEmail,
 						cpEmailflag, cpInfo, cpWoo, getNormalizedCpWoo(), cpState, cpImg, cpWebflag);
